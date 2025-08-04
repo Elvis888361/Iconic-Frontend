@@ -1,0 +1,208 @@
+.login-content {
+  --background: #f5f5f5;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+}
+
+.header-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0;
+  
+  @media (min-width: 768px) {
+    gap: 24px;
+  }
+}
+
+.logo-image {
+  height: 24px;
+  width: auto;
+  
+  @media (min-width: 768px) {
+    height: 36px;
+  }
+}
+
+.title-section {
+  display: flex;
+  gap: 20px;
+  
+  @media (min-width: 768px) {
+    gap: 96px;
+  }
+  
+  @media (min-width: 1024px) {
+    gap: 96px;
+  }
+}
+
+.main-title {
+  color: var(--ion-color-primary);
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0;
+  
+  @media (min-width: 640px) {
+    font-size: 24px;
+  }
+  
+  @media (min-width: 768px) {
+    font-size: 30px;
+  }
+}
+
+.year-title {
+  color: var(--ion-color-warning);
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0;
+  
+  @media (min-width: 640px) {
+    font-size: 18px;
+  }
+  
+  @media (min-width: 768px) {
+    font-size: 24px;
+  }
+}
+
+.content-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  --background: #b0f7ef;
+  color: #080005;
+
+}
+
+.login-card {
+--background: #b0f7ef;
+color: #080005;
+  width: 100%;
+  max-width: 400px;
+  margin: 0;
+  box-shadow: 0 4px 6px -1px rgba(176, 247, 239);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  margin: 0 0 8px 0;
+  
+  @media (min-width: 640px) {
+    font-size: 20px;
+  }
+}
+
+.section-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 16px 0;
+  
+  @media (min-width: 640px) {
+    font-size: 14px;
+  }
+}
+
+.email-input {
+  --background: #faf7f8;
+  --border-radius: 12px;
+  --border-color: #d1d5db;
+  --border-width: 1px;
+  --border-style: solid;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  margin-bottom: 8px;
+  
+  @media (min-width: 640px) {
+    --padding-start: 16px;
+    --padding-end: 16px;
+  }
+}
+
+.verification-text {
+  font-size: 12px;
+  text-align: center;
+  margin: 0 0 12px 0;
+  
+  @media (min-width: 640px) {
+    font-size: 14px;
+  }
+}
+
+.checkbox-item {
+  --background: transparent;
+  --padding-start: 0;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.checkbox-label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-left: 8px;
+  
+  @media (min-width: 640px) {
+    font-size: 14px;
+  }
+}
+
+.register-button,
+.login-button,
+.google-button {
+  margin: 16px 0 8px 0;
+  --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.google-button {
+  --color: #6b7280;
+  --border-color: #e5e7eb;
+  --background: #f8fafc;
+}
+
+.google-icon {
+  height: 24px;
+  width: 24px;
+  margin-right: 8px;
+  
+  @media (min-width: 640px) {
+    height: 32px;
+    width: 32px;
+  }
+}
+
+.divider-text {
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  margin: 8px 0;
+  
+  @media (min-width: 640px) {
+    font-size: 14px;
+  }
+}
+
+.section-divider {
+  margin: 32px 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+.registration-section,
+.login-section {
+  margin-bottom: 16px;
+}
+
+.text-center {
+  text-align: center;
+}

@@ -1,0 +1,166 @@
+#container {
+  text-align: center;
+
+  padding-top: 100px;
+  width: 100%;
+}
+
+#container strong {
+  font-size: 20px;
+  line-height: 26px;
+}
+
+#container p {
+  font-size: 16px;
+  line-height: 22px;
+
+  color: #8c8c8c;
+
+  margin: 0;
+}
+
+#container a {
+  text-decoration: none;
+}
+
+#container button {
+  padding: 10px 20px;
+  border-radius: 5px;
+  background-color: #fff;
+  color: #000;
+  cursor: pointer;
+  border:  1px black solid;
+  margin-left: 3px;
+}
+#container button:hover {
+  background-color: #ccc;
+}
+#container button {
+  transition: all 0.3s ease;
+}
+pre {
+  white-space: pre-wrap; /* Since CSS 2.1 */
+  white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+  white-space: -pre-wrap; /* Opera 4-6 */
+  white-space: -o-pre-wrap; /* Opera 7 */
+  word-wrap: break-word; /* Internet Explorer 5.5+ */
+  tab-size: 4; /* Custom indentation (number of spaces) */
+}
+#showjson {
+  margin: auto;
+  text-align: left;
+  width: 80%;
+}
+
+#container img{
+  height: 200px;
+}
+// Canvas Section Styles
+.canvas-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .canvas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    
+    h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #333;
+      
+      .file-info {
+        font-size: 0.8em;
+        color: #666;
+        font-weight: normal;
+      }
+    }
+    
+    .canvas-controls {
+      display: flex;
+      gap: 8px;
+    }
+  }
+}
+
+.canvas-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 400px;
+  overflow: hidden;
+  
+  .document-canvas {
+    max-width: 100%;
+    max-height: 600px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  .processing-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 123, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+    animation: pulse 2s infinite;
+    
+    .scanning-indicator {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      
+      ion-icon {
+        font-size: 48px;
+        color: #007bff;
+        animation: scan 2s infinite;
+      }
+      
+      p {
+        margin: 12px 0;
+        font-weight: 600;
+        color: #333;
+      }
+      
+      .progress-bar {
+        width: 200px;
+        height: 4px;
+        background: #e9ecef;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 16px;
+        
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #007bff, #0056b3);
+          transition: width 0.3s ease;
+          animation: shimmer 1.5s infinite;
+        }
+      }
+    }
+  }
+}

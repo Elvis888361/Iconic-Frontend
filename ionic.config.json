@@ -1,0 +1,7 @@
+{
+  "name": "M-factuur",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
