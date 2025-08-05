@@ -1,261 +1,130 @@
-<ion-content class="home-container">
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <span class="logo-text">je factuurbox</span>
+      <span class="year">2024</span>
+    </div>
+    
+    <nav>
+      <a 
+        *ngFor="let item of navigationItems" 
+        [class.active]="item.active"
+        (click)="onNavigationClick(item)"
+        class="nav-item"
+      >
+        <span class="nav-icon">{{ item.icon }}</span>
+        {{ item.label }}
+      </a>
+    </nav>
+    
+    <div class="upload-btn" (click)="onUploadClick()">
+      <div>📁</div>
+      <div>Upload</div>
+    </div>
+  </div>
 
-  <!-- Header -->
-  <ion-header class="app-header">
-    <ion-toolbar>
-      <ion-grid>
-        <ion-row class="header-content" align-items="center" justify-content="space-between">
-          <!-- Logo & Title -->
-          <ion-col size="auto" class="logo-section">
-            <div class="logo-icon">
-              <ion-icon name="bolt"></ion-icon>
-            </div>
-            <h1 class="app-title">Factuurbox</h1>
-          </ion-col>
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="header">
+      <h1 class="inbox-total">Inbox Total</h1>
+      <span class="total-amount">€{{ totalAmount }},-</span>
+      <div class="btw-indicator">
+        BTW aan <span class="checkmark">✓</span>
+      </div>
+    </header>
 
-          <!-- Stats -->
-          <ion-col size="auto" class="header-stats">
-            <div class="total-display">
-              <span class="total-label">Inbox Total</span>
-              <span class="total-amount">€{{ stats.totalAmount }},-</span>
-            </div>
-            <div class="btw-indicator" [class.active]="stats.btwEnabled">
-              <span>BTW aan</span>
-              <div class="checkmark">
-                <ion-icon name="checkmark"></ion-icon>
-              </div>
-            </div>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
-  </ion-header>
+    <div class="status-toggle">
+      <button 
+        *ngFor="let status of statusOptions"
+        [class.active]="status.active"
+        (click)="onStatusChange(status)"
+        class="status-btn"
+      >
+        {{ status.label }}
+      </button>
+      <button class="filter-btn" (click)="onFilterClick()">🔽</button>
+    </div>
 
-  <!-- Content -->
-  <ion-content fullscreen>
-
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <ion-grid>
-        <ion-row class="hero-content" align-items="center" justify-content="space-between">
-          
-          <!-- Text -->
-          <ion-col size="12" size-md="6" class="hero-text">
-            <h2 class="hero-title">AI je facturen in 1 slimme box</h2>
-            <p class="hero-subtitle">
-              Gratis inlezen van al je facturen en kassabonnen. 
-              Bespaar honderden euro's aan conversiekosten met onze AI-powered oplossing.
-            </p>
-
-            <div class="hero-actions">
-              <ion-button expand="block" fill="solid" color="primary" (click)="openUploadModal()">
-                <ion-icon slot="start" name="cloud-upload"></ion-icon>
-                Upload Factuur
-              </ion-button>
-              <ion-button expand="block" fill="outline" color="secondary" (click)="viewReports()">
-                <ion-icon slot="start" name="bar-chart"></ion-icon>
-                Bekijk Rapporten
-              </ion-button>
-            </div>
-          </ion-col>
-
-          <!-- Visual -->
-          <ion-col size="12" size-md="5" class="hero-visual">
-            <ion-card class="dashboard-preview">
-              <ion-card-header class="preview-header">
-                <ion-card-title>Live Dashboard</ion-card-title>
-                <ion-icon name="cog-outline"></ion-icon>
-              </ion-card-header>
-              <ion-card-content class="preview-stats">
-                <ion-grid>
-                  <ion-row>
-                    <ion-col class="stat-item">
-                      <span class="stat-label">Totaal Facturen</span>
-                      <span class="stat-value">{{ stats.totalInvoices }}</span>
-                    </ion-col>
-                    <ion-col class="stat-item">
-                      <span class="stat-label">Deze Maand</span>
-                      <span class="stat-value">€{{ stats.thisMonth }}</span>
-                    </ion-col>
-                    <ion-col class="stat-item">
-                      <span class="stat-label">In Behandeling</span>
-                      <span class="stat-value">{{ stats.pendingInvoices }}</span>
-                    </ion-col>
-                    <ion-col class="stat-item success">
-                      <span class="stat-label">Besparing</span>
-                      <span class="stat-value">€890</span>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-
-        </ion-row>
-      </ion-grid>
-    </section>
-
-    <!-- Main Dashboard -->
-    <main class="main-content">
-      <!-- Filter Tabs -->
-      <ion-segment [(ngModel)]="activeTab" class="filter-tabs">
-        <ion-segment-button *ngFor="let tab of tabs" [value]="tab">
-          {{ tab | titlecase }}
-        </ion-segment-button>
-        <ion-button fill="clear" class="filter-button">
-          <ion-icon name="filter"></ion-icon>
-        </ion-button>
-      </ion-segment>
-
-      <!-- Stats Cards -->
-      <ion-grid class="stats-grid">
-        <ion-row>
-          <ion-col size="6" size-md="3" *ngFor="let card of [
-            { icon: 'document-text', value: stats.totalInvoices, label: 'Totaal Facturen' },
-            { icon: 'cash', value: '€' + stats.thisMonth, label: 'Deze Maand', css: 'success' },
-            { icon: 'time', value: stats.pendingInvoices, label: 'In Behandeling', css: 'warning' },
-            { icon: 'trending-up', value: '€890', label: 'Besparing', css: 'info' }
-          ]">
-            <ion-card class="stat-card {{card.css || ''}}">
-              <ion-card-content>
-                <div class="stat-icon">
-                  <ion-icon [name]="card.icon"></ion-icon>
-                </div>
-                <div class="stat-info">
-                  <span class="stat-number">{{ card.value }}</span>
-                  <span class="stat-text">{{ card.label }}</span>
-                </div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-
-      <!-- Recent Invoices List -->
-      <section class="invoices-section">
-        <ion-list *ngIf="!isLoading; else loadingTpl" class="invoices-list">
-          <ion-item *ngFor="let invoice of recentInvoices" (click)="navigateToInvoices()">
-            <ion-label>
-              <h2>#{{ invoice.id }} — {{ invoice.supplier }}</h2>
-              <p>{{ invoice.date }}</p>
-            </ion-label>
-            <ion-note slot="end" [class]="getStatusColor(invoice.status)">
-              €{{ invoice.amount }},- <br>
-              {{ getStatusText(invoice.status) }}
-            </ion-note>
-          </ion-item>
-          <ion-item lines="none">
-            <ion-button fill="clear" (click)="navigateToInvoices()">
-              Alle facturen <ion-icon slot="end" name="arrow-forward"></ion-icon>
-            </ion-button>
-          </ion-item>
-        </ion-list>
-        <ng-template #loadingTpl>
-          <div class="loading-state">
-            <ion-spinner name="crescent"></ion-spinner>
-            <p>Laden...</p>
+    <div class="content-grid">
+      <!-- Upload Card -->
+      <div class="card upload-card" [class.hover]="uploadCardHovered" 
+           (mouseenter)="onUploadCardHover(true)" 
+           (mouseleave)="onUploadCardHover(false)">
+        <h2 class="upload-title">Al je facturen in 1 slimme box</h2>
+        <p class="upload-subtitle">Gratis inlezen van al je facturen en kassabonnen</p>
+        
+        <div class="company-logos">
+          <div 
+            *ngFor="let logo of companyLogos; let i = index" 
+            class="company-logo"
+            [style.animation-delay]="(i * 50) + 'ms'"
+          >
+            {{ logo }}
           </div>
-        </ng-template>
-      </section>
+        </div>
+        
+        <button class="upload-button" (click)="onUploadFactuur()">
+          Upload factuur
+        </button>
+        
+        <p class="feature-text">
+          alle facturen zijn UBL proof en kun je doorsturen naar elk boekhoudpakket
+        </p>
+      </div>
 
-      <!-- Sidebar -->
-      <ion-grid class="sidebar">
-        <ion-row>
-          <ion-col size="12">
-            <ion-card class="upload-card">
-              <ion-card-header>
-                <ion-card-title>Upload Factuur</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <p>Sleep je factuur hier of klik om te uploaden</p>
-                <ion-button expand="block" (click)="openUploadModal()">
-                  <ion-icon slot="start" name="cloud-upload"></ion-icon>
-                  Upload Nu
-                </ion-button>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="12">
-            <ion-card class="actions-card">
-              <ion-card-header>
-                <ion-card-title>Snelle Acties</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-button fill="clear" (click)="exportData()">
-                  <ion-icon slot="start" name="download"></ion-icon> Exporteren
-                </ion-button>
-                <ion-button fill="clear" (click)="viewReports()">
-                  <ion-icon slot="start" name="bar-chart"></ion-icon> Rapporten
-                </ion-button>
-                <ion-button fill="clear" (click)="navigateToSettings()">
-                  <ion-icon slot="start" name="settings"></ion-icon> Instellingen
-                </ion-button>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="12">
-            <ion-card class="benefits-card">
-              <ion-card-header>
-                <ion-card-title>Waarom Factuurbox?</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-list class="benefits-list">
-                  <ion-item lines="none" *ngFor="let b of [
-                    'UBL proof facturen',
-                    'Direct naar boekhoudpakketten',
-                    'AI-powered herkenning',
-                    'Bespaar honderden euro\'s'
-                  ]">
-                    <ion-icon slot="start" name="checkmark"></ion-icon>
-                    <ion-label>{{ b }}</ion-label>
-                  </ion-item>
-                </ion-list>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+      <!-- Info Card -->
+      <div class="card info-card" *ngIf="showInfoCard">
+        <button class="close-btn" (click)="onCloseInfoCard()">×</button>
+        <h3>je factuurbox is de eerste Gratis conversie tool voor al je facturen</h3>
+        <p class="info-text">
+          Ondernemers kunnen met de factuurbox
+          <span class="highlight">honderden euros conversiekosten besparen</span>
+          op hun huidige boekhoudkosten...
+          <a href="#" class="read-more" (click)="onReadMore($event)">lees meer</a>
+        </p>
+        <div class="team-image">
+          <img *ngIf="teamImageUrl; else placeholder" [src]="teamImageUrl" alt="Team foto">
+          <ng-template #placeholder>
+            <span>Team foto placeholder</span>
+          </ng-template>
+        </div>
+      </div>
 
-    </main>
-
-    <!-- Upload Modal -->
-    <ion-modal [isOpen]="showUploadModal" (didDismiss)="closeUploadModal()">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Upload Factuur</ion-title>
-          <ion-buttons slot="end">
-            <ion-button (click)="closeUploadModal()">
-              <ion-icon name="close"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="modal-body">
-        <ng-container *ngIf="!isLoading; else uploadLoadingTpl">
-          <div class="upload-area">
-            <ion-icon name="cloud-upload" size="large"></ion-icon>
-            <h3>Sleep je factuur hier</h3>
-            <p>of klik om een bestand te selecteren</p>
-            <input 
-              type="file" 
-              id="file-input" 
-              (change)="onFileSelected($event)" 
-              accept=".pdf,.jpg,.jpeg,.png" 
-              hidden>
-            <ion-button (click)="openFilePicker()">
-              Bestand Kiezen
-            </ion-button>
+      <!-- Workflow Card -->
+      <div class="card workflow-card">
+        <button class="filter-btn" (click)="onWorkflowFilter()">🔽</button>
+        <h3>Van mailbox naar Factuurbox</h3>
+        
+        <ul class="workflow-features">
+          <li *ngFor="let feature of workflowFeatures">{{ feature }}</li>
+        </ul>
+        
+        <div class="workflow-diagram">
+          <div class="workflow-step" *ngFor="let step of workflowSteps">
+            <span class="step-icon">{{ step.icon }}</span>
+            <span class="step-label">{{ step.label }}</span>
           </div>
-        </ng-container>
-        <ng-template #uploadLoadingTpl>
-          <div class="loading-upload">
-            <ion-spinner name="crescent"></ion-spinner>
-            <h3>Factuur wordt verwerkt...</h3>
-            <p>AI analyseert je factuur</p>
-          </div>
-        </ng-template>
-      </ion-content>
-    </ion-modal>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  </ion-content>
-</ion-content>
+<!-- Loading Overlay -->
+<div class="loading-overlay" *ngIf="isLoading">
+  <div class="spinner"></div>
+  <p>{{ loadingMessage }}</p>
+</div>
+
+<!-- Toast Messages -->
+<div class="toast-container">
+  <div 
+    *ngFor="let toast of toastMessages" 
+    class="toast"
+    [class]="'toast-' + toast.type"
+  >
+    {{ toast.message }}
+  </div>
+</div>

@@ -1,127 +1,85 @@
-<ion-content [fullscreen]="true" class="login-content">
-  <div class="login-container">
-    <!-- Header Section -->
-    <div class="header-section">
-      <img [src]="logoUrl" alt="Logo" class="logo-image" />
-      <div class="title-section">
-        <h1 class="main-title">je factuurbox</h1>
-        <h2 class="year-title">2024</h2>
+<div class="container">
+  <div class="card">
+    <!-- Header with logo -->
+    <div class="header">
+      <div class="logo-section">
+        <div class="logo">
+          <div class="logo-icon">m</div>
+          <span class="logo-text">je factuurbox</span>
+        </div>
+        <span class="year">2024</span>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="content-wrapper">
-      <ion-card class="login-card">
-        <ion-card-content>
-          <!-- Registration Section -->
-          <div class="registration-section">
-            <ion-text color="#080005">
-              <h1 class="section-title">
-                maak een gratis account aan met je mailadres en verifieer je mailadres
-              </h1>
-            </ion-text>
-            <ion-text color="#850314">
-              <h4 class="section-subtitle">
-                en start direct met het vullen van je factuurbox
-              </h4>
-            </ion-text>
+    <!-- Signup Section -->
+    <div class="signup-section">
+      <h2 class="section-title">maak een gratis account aan met je mailadres en verifieer je mailadres</h2>
+      <p class="section-subtitle">en start direct met het vullen van je factuurbox</p>
+      
+      <form class="signup-form" (ngSubmit)="onSignup()">
+        <div class="form-group">
+          <input 
+            type="email" 
+            class="input-field" 
+            placeholder="email address"
+            [(ngModel)]="signupEmail"
+            name="signupEmail"
+            required>
+        </div>
+        
+        <p class="verification-text">Wij sturen direct een verificatie naar je mailadres</p>
+        
+        <div class="checkbox-group">
+          <input 
+            type="checkbox" 
+            id="terms" 
+            class="checkbox"
+            [(ngModel)]="acceptTerms"
+            name="acceptTerms">
+          <label for="terms">Ik ga akkoord met de voorwaarden</label>
+        </div>
+        
+        <button type="submit" class="primary-button">aanmelden</button>
+      </form>
+      
+      <div class="divider">
+        <span>of</span>
+      </div>
+      
+      <button class="google-button" (click)="signInWithGoogle()">
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjE4IDkuMjA0NTVIMTYuNVY5SDE5VjEwSDE3LjE4VjkuMjA0NTVaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRoIGQ9Ik0xNi41IDlWMTBIMTRWOUgxNi41WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNOSAxMC41VjE1LjVIMTUuNVYxMC41SDlaIiBmaWxsPSIjRkJCQzA0Ii8+CjxwYXRoIGQ9Ik0xNS41IDEwLjVWMTVIMTRWMTAuNUgxNS41WiIgZmlsbD0iI0VBNDMzNSIvPgo8L3N2Zz4=" alt="Google">
+        Sign in with Google
+      </button>
+    </div>
 
-            <ion-item lines="none" class="email-input">
-              <ion-input
-                type="email"
-                placeholder="email address"
-                class="text-center"
-              ></ion-input>
-            </ion-item>
-
-            <ion-text color="medium">
-              <p class="verification-text">
-                Wij sturen direct een verificatie naar je mailadres
-              </p>
-            </ion-text>
-
-            <ion-item lines="none" class="checkbox-item">
-              <ion-checkbox slot="start" id="checkbox1"></ion-checkbox>
-              <ion-label class="checkbox-label">
-                Ik ga akkoord met de voorwaarden
-              </ion-label>
-            </ion-item>
-
-            <ion-button
-              expand="block"
-              shape="round"
-              color="dark"
-              class="register-button"
-              (click)="onClick($event)"
-            >
-              aanmelden
-            </ion-button>
-
-            <ion-text color="dark">
-              <p class="divider-text">Of</p>
-            </ion-text>
-
-            <ion-button
-              expand="block"
-              fill="outline"
-              shape="round"
-              color="medium"
-              class="google-button"
-            >
-              <img [src]="googleLogoUrl" alt="Google Logo" class="google-icon" />
-              Sign in with Google
-            </ion-button>
-          </div>
-
-          <!-- Divider -->
-          <hr class="section-divider" />
-
-          <!-- Login Section -->
-          <div class="login-section">
-            <ion-text color="dark">
-              <h1 class="section-title">Inloggen</h1>
-            </ion-text>
-
-            <ion-item lines="none" class="email-input">
-              <ion-input
-                type="email"
-                placeholder="Email address"
-                class="text-center"
-              ></ion-input>
-            </ion-item>
-
-            <ion-text color="medium">
-              <p class="verification-text">
-                We sturen direct een verificatie naar je mailadres
-              </p>
-            </ion-text>
-
-            <ion-button
-              expand="block"
-              shape="round"
-              color="primary"
-              class="login-button"
-            >
-              Inloggen
-            </ion-button>
-
-            <ion-text color="dark">
-              <p class="divider-text">Of</p>
-            </ion-text>
-
-            <ion-button
-              expand="block"
-              fill="outline"
-              shape="round"
-              color="medium"
-              class="google-button"
-            >
-              <img [src]="googleLogoUrl" alt="Google Logo" class="google-icon" />
-              Sign in with Google
-            </ion-button>
-          </div>
-        </ion-card-content>
-      </ion-card>
+    <!-- Login Section -->
+    <div class="login-section">
+      <h2 class="section-title">Inloggen</h2>
+      
+      <form class="login-form" (ngSubmit)="onLogin()">
+        <div class="form-group">
+          <input 
+            type="email" 
+            class="input-field" 
+            placeholder="Email address"
+            [(ngModel)]="loginEmail"
+            name="loginEmail"
+            required>
+        </div>
+        
+        <p class="verification-text">We sturen direct een verificatie naar je mailadres</p>
+        
+        <button type="submit" class="secondary-button">Inloggen</button>
+      </form>
+      
+      <div class="divider">
+        <span>of</span>
+      </div>
+      
+      <button class="google-button" (click)="signInWithGoogle()">
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjE4IDkuMjA0NTVIMTYuNVY5SDE5VjEwSDE3LjE4VjkuMjA0NTVaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRoIGQ9Ik0xNi41IDlWMTBIMTRWOUgxNi41WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNOSAxMC41VjE1LjVIMTUuNVYxMC41SDlaIiBmaWxsPSIjRkJCQzA0Ii8+CjxwYXRoIGQ9Ik0xNS41IDEwLjVWMTVIMTRWMTAuNUgxNS41WiIgZmlsbD0iI0VBNDMzNSIvPgo8L3N2Zz4=" alt="Google">
+        Sign in with Google
+      </button>
     </div>
   </div>
-</ion-content>
+</div>
