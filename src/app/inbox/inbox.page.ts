@@ -1,4 +1,5 @@
 import { environment } from "../../environments/environment"
+import { Router } from '@angular/router';
 import {
   Component,
   Input,
@@ -9,6 +10,7 @@ import {
   AfterViewInit,
   ChangeDetectorRef,
 } from "@angular/core"
+// import { Clipboard } from '@angular/cdk/clipboard'; // or use navigator.clipboard
 import { HttpClient, HttpHeaders } from "@angular/common/http"
 import { WebsocketService } from "../services/websocket.service"
 
@@ -110,6 +112,31 @@ interface OcrField {
   animationPhase?: number
 }
 
+interface NavigationItem {
+  id: string;
+  label: string;
+  icon: string;
+  active: boolean;
+  route?: string;
+}
+
+interface StatusOption {
+  id: string;
+  label: string;
+  active: boolean;
+}
+
+interface ToastMessage {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+  duration?: number;
+}
+
+interface WorkflowStep {
+  icon: string;
+  label: string;
+}
 interface ProcessingStep {
   step: string
   message: string
@@ -121,6 +148,7 @@ interface TableCell {
   text: string
   confidence: number
 }
+
 
 interface DocumentMapping {
   cellWidth: number
@@ -143,7 +171,54 @@ export class InboxPage implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild("canvasContainer", { static: false }) canvasContainer!: ElementRef<HTMLDivElement>
   @ViewChild("fieldModal") fieldModal: any
 
+  totalAmount: number = 150;
+  isLoading: boolean = false;
+  loadingMessage: string = 'Laden...';
+  showInfoCard: boolean = true;
+  uploadCardHovered: boolean = false;
+  teamImageUrl: string | null = null;
+
+   // Navigation items
+  navigationItems: NavigationItem[] = [
+    { id: 'home', label: 'Home', icon: '🏠', active: true, route: '/dashboard' },
+    { id: 'inbox', label: 'Inbox', icon: '📥', active: false, route: '/inbox' },
+    { id: 'outbox', label: 'Outbox', icon: '📤', active: false, route: '/outbox' },
+    { id: 'profile', label: 'Profile', icon: '👤', active: false, route: '/profile' }
+  ];
+
+  // Status options
+  statusOptions: StatusOption[] = [
+    { id: 'today', label: 'vandaag', active: true },
+    { id: 'yesterday', label: 'gisteren', active: false }
+  ];
+
+  // Company logos
+  companyLogos: string[] = [
+    'EXACT', 'AFAS', 'CASH', 'KING',
+    'snelstart', 'Asperion', 'KING', 'e-Boekhouden',
+    'informer', 'Minox', 'yuki', '+'
+  ];
+
+  // Workflow features
+  workflowFeatures: string[] = [
+    'Al je facturen zijn direct inzichtelijk',
+    'Nooit meer in je mailbox zoeken naar facturen',
+    'Alle aankopen en totaalbedragen zijn direct zichtbaar'
+  ];
+
+  // Workflow steps
+  workflowSteps: WorkflowStep[] = [
+    { icon: '📧', label: 'Email' },
+    { icon: '📋', label: 'Process' },
+    { icon: '✅', label: 'Complete' }
+  ];
+toastMessages: ToastMessage[] = [];
+
+  private toastCounter: number = 0;
+  private toastTimeouts: { [key: string]: any } = {};
+
   // File and processing state
+  Object = Object;
   public selectedFile: File | null = null
   public isProcessing = false
   public processingComplete = false
@@ -188,6 +263,9 @@ public canvasHeight = 700
   private socketId: string | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
+  public showInvoiceDetails = false; 
+
+  public invoiceData: any = null;
 
   // Math helper for template
   public Math = Math
@@ -196,10 +274,14 @@ public canvasHeight = 700
     private http: HttpClient,
     private websocketService: WebsocketService,
     private cdr: ChangeDetectorRef,
+    private router: Router,
+    // private clipboard: Clipboard,
   ) {}
 
   ngOnInit() {
     this.setupWebSocketListeners()
+    this.initializeComponent();
+    this.loadDashboardData();
   }
 
   ngAfterViewInit() {
@@ -208,14 +290,250 @@ public canvasHeight = 700
 
   ngOnDestroy() {
     this.cleanup()
+    this.clearAllToasts();
+  }
+   // Initialization methods
+  private initializeComponent(): void {
+    console.log('Dashboard component initialized');
+    // Additional initialization logic
+  }
+
+  private async loadDashboardData(): Promise<void> {
+    try {
+      this.setLoading(true, 'Dashboard gegevens laden...');
+      
+      // Simulate API calls
+      await this.delay(1000);
+      
+      // Load data here
+      await this.loadInboxTotal();
+      await this.loadUserSettings();
+      
+      this.setLoading(false);
+      this.showToast('Dashboard succesvol geladen!', 'success');
+    } catch (error) {
+      this.setLoading(false);
+      this.showToast('Fout bij het laden van dashboard gegevens', 'error');
+      console.error('Error loading dashboard data:', error);
+    }
+  }
+
+  private async loadInboxTotal(): Promise<void> {
+    // Simulate API call to get inbox total
+    await this.delay(500);
+    this.totalAmount = 150; // This would come from your service
+  }
+
+  private async loadUserSettings(): Promise<void> {
+    // Simulate API call to get user settings
+    await this.delay(300);
+    // Load user preferences, settings, etc.
+  }
+
+  // Navigation methods
+  onNavigationClick(item: NavigationItem): void {
+    this.navigationItems.forEach(nav => nav.active = false);
+    item.active = true;
+    
+    console.log(`Navigating to: ${item.label}`, item);
+    
+    // Add your routing logic here
+    if (item.route) {
+      this.router.navigate([item.route]).catch(error => {
+        console.error('Navigation error:', error);
+        this.showToast('Navigatie fout opgetreden', 'error');
+      });
+    }
+    
+    this.showToast(`Navigeerd naar ${item.label}`, 'info');
+  }
+
+  // Status methods
+  onStatusChange(selectedStatus: StatusOption): void {
+    this.statusOptions.forEach(status => status.active = false);
+    selectedStatus.active = true;
+    
+    console.log(`Status changed to: ${selectedStatus.label}`, selectedStatus);
+    
+    // Reload data based on status
+    this.loadStatusData(selectedStatus.id);
+    this.showToast(`Status gewijzigd naar ${selectedStatus.label}`, 'info');
+  }
+
+  private async loadStatusData(statusId: string): Promise<void> {
+    this.setLoading(true, 'Gegevens laden...');
+    
+    try {
+      // Simulate API call based on status
+      await this.delay(800);
+      
+      // Update data based on status
+      if (statusId === 'today') {
+        this.totalAmount = 150;
+      } else {
+        this.totalAmount = 85;
+      }
+      
+      this.setLoading(false);
+    } catch (error) {
+      this.setLoading(false);
+      this.showToast('Fout bij het laden van gegevens', 'error');
+    }
+  }
+
+  // Upload methods
+  onUploadClick(): void {
+    console.log('Upload button clicked from sidebar');
+    this.onUploadFactuur();
+  }
+
+  onUploadFactuur(): void {
+    console.log('Upload factuur clicked');
+    
+    // Add your file upload logic here
+    this.simulateFileUpload();
+  }
+
+  private async simulateFileUpload(): Promise<void> {
+    this.setLoading(true, 'Factuur uploaden...');
+    
+    try {
+      await this.delay(2000);
+      
+      // Simulate successful upload
+      this.totalAmount += 50; // Add uploaded amount
+      this.setLoading(false);
+      this.showToast('Factuur succesvol geüpload!', 'success');
+    } catch (error) {
+      this.setLoading(false);
+      this.showToast('Fout bij het uploaden van factuur', 'error');
+    }
+  }
+
+  // Card interaction methods
+  onUploadCardHover(hovered: boolean): void {
+    this.uploadCardHovered = hovered;
+  }
+
+  onCloseInfoCard(): void {
+    this.showInfoCard = false;
+    this.showToast('Info kaart gesloten', 'info');
+  }
+
+  onReadMore(event: Event): void {
+    event.preventDefault();
+    console.log('Read more clicked');
+    
+    // Add your read more logic here
+    this.showToast('Meer informatie wordt geladen...', 'info');
+    
+    // You could open a modal, navigate to a detailed page, or expand content
+    // Example: this.router.navigate(['/info-details']);
+  }
+
+  // Filter methods
+  onFilterClick(): void {
+    console.log('Filter button clicked');
+    this.showToast('Filter opties worden geladen...', 'info');
+    
+    // Add your filter logic here
+    // You could open a filter modal or dropdown
+  }
+
+  onWorkflowFilter(): void {
+    console.log('Workflow filter clicked');
+    this.showToast('Workflow filter wordt toegepast...', 'info');
+    
+    // Add your workflow filter logic here
+  }
+
+  // Loading methods
+  private setLoading(loading: boolean, message: string = 'Laden...'): void {
+    this.isLoading = loading;
+    this.loadingMessage = message;
+  }
+
+  // Toast methods
+  private showToast(message: string, type: 'success' | 'error' | 'info', duration: number = 3000): void {
+    const toast: ToastMessage = {
+      id: `toast-${++this.toastCounter}`,
+      message,
+      type,
+      duration
+    };
+
+    this.toastMessages.push(toast);
+
+    // Auto-remove toast after duration
+    const timeout = setTimeout(() => {
+      this.removeToast(toast.id);
+    }, duration);
+
+    this.toastTimeouts[toast.id] = timeout;
+  }
+
+  private removeToast(toastId: string): void {
+    const index = this.toastMessages.findIndex(toast => toast.id === toastId);
+    if (index > -1) {
+      this.toastMessages.splice(index, 1);
+    }
+    
+    // Clear timeout if it exists
+    if (this.toastTimeouts[toastId]) {
+      clearTimeout(this.toastTimeouts[toastId]);
+      delete this.toastTimeouts[toastId];
+    }
+  }
+
+  private clearAllToasts(): void {
+    // Clear all timeouts
+    Object.values(this.toastTimeouts).forEach(timeout => {
+      clearTimeout(timeout);
+    });
+    
+    this.toastTimeouts = {};
+    this.toastMessages = [];
+  }
+
+  // Utility methods
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Additional utility methods you might need
+  private formatCurrency(amount: number): string {
+    return `€${amount},-`;
+  }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  // Method to refresh dashboard data
+  refreshDashboard(): void {
+    this.loadDashboardData();
+  }
+
+  // Method to reset filters and status
+  resetFilters(): void {
+    this.statusOptions.forEach(status => {
+      status.active = status.id === 'today';
+    });
+    this.loadStatusData('today');
+    this.showToast('Filters gereset', 'info');
   }
 
   private cleanup(): void {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId)
     }
+    if (this.fieldUpdateTimer) {
+      clearTimeout(this.fieldUpdateTimer)
+    }
     this.websocketService.disconnect()
   }
+
 
   private setupWebSocketListeners(): void {
     const socket = this.websocketService.getSocket()
@@ -338,6 +656,7 @@ private initializeCanvas(): void {
 
   clearSelectedFile(): void {
     this.selectedFile = null
+    this.invoiceData = null
     this.resetProcessingState()
     this.drawEmptyState()
     if (this.fileInputRef) {
@@ -356,10 +675,16 @@ private initializeCanvas(): void {
     this.ocrProgress = 0
     this.currentProcessingStep = ""
     this.fieldAnimations.clear()
+    this.invoiceData = null
 
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId)
       this.animationFrameId = null
+    }
+
+    if (this.fieldUpdateTimer) {
+      clearTimeout(this.fieldUpdateTimer)
+      this.fieldUpdateTimer = null
     }
   }
 
@@ -661,7 +986,7 @@ private drawLoadingState(message: string): void {
     this.ctx.fillText(message, this.canvas.width / 2, this.canvas.height / 2 + 20)
   }
 
-  private drawDocumentToCanvas(img: HTMLImageElement): void {
+private drawDocumentToCanvas(img: HTMLImageElement): void {
     if (!this.ctx || !this.canvas) return;
 
     // For PDFs, the image is a snapshot of the rendered PDF, so draw it at (0,0) with full canvas size
@@ -758,67 +1083,288 @@ private handleProcessingStep(data: any): void {
   this.drawProcessingProgress();
   this.cdr.detectChanges();
 }
- private transformCoordinates(field: any): { x: number; y: number; width: number; height: number } {
-  console.log('Transforming coordinates:', { 
-    field: field, 
-    fileType: this.selectedFile?.type,
-    documentOffset: { x: this.documentOffsetX, y: this.documentOffsetY },
-    documentSize: { width: this.documentWidth, height: this.documentHeight },
-    scaleFactor: this.scaleFactor,
-    originalImageSize: { width: this.originalImageWidth, height: this.originalImageHeight }
-  });
+   private transformCoordinates(field: any): { x: number; y: number; width: number; height: number } {
+    console.log('Transforming coordinates:', { 
+      field: field, 
+      fileType: this.selectedFile?.type,
+      documentOffset: { x: this.documentOffsetX, y: this.documentOffsetY },
+      documentSize: { width: this.documentWidth, height: this.documentHeight },
+      scaleFactor: this.scaleFactor,
+      originalImageSize: { width: this.originalImageWidth, height: this.originalImageHeight }
+    });
 
-  // Ensure we have valid numeric values
-  const fieldX = typeof field.x === 'number' ? field.x : 0;
-  const fieldY = typeof field.y === 'number' ? field.y : 0;
-  const fieldWidth = typeof field.width === 'number' ? field.width : this.estimateTextWidth(field.text || '');
-  const fieldHeight = typeof field.height === 'number' ? field.height : 20;
+    // Ensure we have valid numeric values
+    const fieldX = typeof field.x === 'number' ? field.x : 0;
+    const fieldY = typeof field.y === 'number' ? field.y : 0;
+    const fieldWidth = typeof field.width === 'number' ? field.width : this.estimateTextWidth(field.text || '');
+    const fieldHeight = typeof field.height === 'number' ? field.height : 20;
 
-  let canvasX: number, canvasY: number, width: number, height: number;
+    let canvasX: number, canvasY: number, width: number, height: number;
 
-  if (this.selectedFile?.type === "application/pdf") {
-    // For PDF files, coordinates from backend are already in pixel coordinates
-    // relative to the original image size. We need to scale them to fit our canvas.
-    
-    if (this.originalImageWidth && this.originalImageHeight) {
-      // Calculate scale factor from original image to our displayed document
-      const displayScaleX = this.documentWidth / this.originalImageWidth;
-      const displayScaleY = this.documentHeight / this.originalImageHeight;
+    if (this.selectedFile?.type === "application/pdf") {
+      // For PDF files, coordinates from backend are already in pixel coordinates
+      // relative to the original image size. We need to scale them to fit our canvas.
       
-      console.log('PDF display scaling:', { displayScaleX, displayScaleY });
-      
-      // Apply display scaling and add document offset
-      canvasX = this.documentOffsetX + (fieldX * displayScaleX);
-      canvasY = this.documentOffsetY + (fieldY * displayScaleY);
-      width = fieldWidth * displayScaleX;
-      height = fieldHeight * displayScaleY;
+      if (this.originalImageWidth && this.originalImageHeight) {
+        // Calculate scale factor from original image to our displayed document
+        const displayScaleX = this.documentWidth / this.originalImageWidth;
+        const displayScaleY = this.documentHeight / this.originalImageHeight;
+        
+        console.log('PDF display scaling:', { displayScaleX, displayScaleY });
+        
+        // Apply display scaling and add document offset
+        canvasX = this.documentOffsetX + (fieldX * displayScaleX);
+        canvasY = this.documentOffsetY + (fieldY * displayScaleY);
+        width = fieldWidth * displayScaleX;
+        height = fieldHeight * displayScaleY;
+      } else {
+        // Fallback: use the current scale factor
+        canvasX = this.documentOffsetX + (fieldX * this.scaleFactor);
+        canvasY = this.documentOffsetY + (fieldY * this.scaleFactor);
+        width = fieldWidth * this.scaleFactor;
+        height = fieldHeight * this.scaleFactor;
+      }
     } else {
-      // Fallback: use the current scale factor
-      canvasX = this.documentOffsetX + (fieldX * this.scaleFactor);
-      canvasY = this.documentOffsetY + (fieldY * this.scaleFactor);
+      // For image files, apply scaling and offset
+      canvasX = fieldX * this.scaleFactor + this.documentOffsetX;
+      canvasY = fieldY * this.scaleFactor + this.documentOffsetY;
       width = fieldWidth * this.scaleFactor;
       height = fieldHeight * this.scaleFactor;
     }
-  } else {
-    // For image files, apply scaling and offset
-    canvasX = fieldX * this.scaleFactor + this.documentOffsetX;
-    canvasY = fieldY * this.scaleFactor + this.documentOffsetY;
-    width = fieldWidth * this.scaleFactor;
-    height = fieldHeight * this.scaleFactor;
+
+    // Ensure all values are valid numbers and within reasonable bounds
+    const result = { 
+      x: Math.max(0, Math.min(isNaN(canvasX) ? 0 : canvasX, this.canvasWidth)), 
+      y: Math.max(0, Math.min(isNaN(canvasY) ? 0 : canvasY, this.canvasHeight)), 
+      width: Math.max(10, Math.min(isNaN(width) ? 100 : width, this.canvasWidth)), 
+      height: Math.max(10, Math.min(isNaN(height) ? 20 : height, this.canvasHeight))
+    };
+
+    console.log('Transformed coordinates:', result);
+    return result;
+  }
+  copyFieldText() {
+    if (this.selectedField?.value) {
+      navigator.clipboard.writeText(this.selectedField.value)
+        .then(() => console.log('Copied!'))
+        .catch(err => console.error('Copy failed', err));
+    }
+  }
+  onInvoiceDetailsReceived(data: any) {
+    this.invoiceData = data.invoiceDetails;  // or however you get it
+    console.log('Invoice details:', this.invoiceData);
+  }
+  getCountryColor(code: string): string {
+    const colors: Record<string,string> = {
+      NL: '#155724',   // greenish
+      BE: '#0d47a1'    // bluish
+    };
+    return colors[code] || '#333';
+  }
+  getCountryName(code: string): string {
+  const countryMap: Record<string, string> = {
+    'NL': 'Netherlands',
+    'BE': 'Belgium',
+    'DE': 'Germany',
+    'FR': 'France',
+    'UK': 'United Kingdom',
+    'US': 'United States',
+    'UNKNOWN': 'Unknown'
+  };
+  return countryMap[code] || code;
+}
+  getCompletenessColor(score: number): string {
+  if (score >= 90) return 'linear-gradient(135deg, #28a745, #20c997)'; // Green
+  if (score >= 70) return 'linear-gradient(135deg, #ffc107, #fd7e14)'; // Yellow
+  if (score >= 50) return 'linear-gradient(135deg, #fd7e14, #dc3545)'; // Orange
+  return 'linear-gradient(135deg, #dc3545, #c82333)'; // Red
+}
+validateIBAN(iban: string): boolean {
+  if (!iban) return false;
+  // Basic IBAN validation - NL IBAN should be 18 characters
+  const cleanIban = iban.replace(/\s/g, '').toUpperCase();
+  return /^[A-Z]{2}\d{2}[A-Z0-9]{4}\d{10}$/.test(cleanIban);
+}
+validateVATNumber(vat: string, country: string): boolean {
+  if (!vat) return false;
+  const cleanVat = vat.replace(/\s/g, '').toUpperCase();
+  
+  switch (country) {
+    case 'NL':
+      return /^NL\d{9}B\d{2}$/.test(cleanVat);
+    case 'BE':
+      return /^BE\d{10}$/.test(cleanVat);
+    default:
+      return cleanVat.length > 5; // Basic validation
+  }
+}
+validateCompanyNumber(number: string, country: string): boolean {
+  if (!number) return false;
+  const cleanNumber = number.replace(/\s/g, '');
+  
+  switch (country) {
+    case 'NL':
+      return /^\d{8}$/.test(cleanNumber); // Dutch KvK number
+    case 'BE':
+      return /^BE\d{10}$/.test(cleanNumber) || /^\d{10}$/.test(cleanNumber);
+    default:
+      return cleanNumber.length >= 6;
+  }
+}
+getFieldValidationStatus(fieldPath: string): { status: 'success' | 'warning' | 'error', message: string } {
+  if (!this.invoiceData?.data_validation?.field_status) {
+    return { status: 'warning', message: 'Validation not available' };
   }
 
-  // Ensure all values are valid numbers and within reasonable bounds
-  const result = { 
-    x: Math.max(0, Math.min(isNaN(canvasX) ? 0 : canvasX, this.canvasWidth)), 
-    y: Math.max(0, Math.min(isNaN(canvasY) ? 0 : canvasY, this.canvasHeight)), 
-    width: Math.max(10, Math.min(isNaN(width) ? 100 : width, this.canvasWidth)), 
-    height: Math.max(10, Math.min(isNaN(height) ? 20 : height, this.canvasHeight))
+  const fieldStatus = this.invoiceData.data_validation.field_status[fieldPath];
+  if (!fieldStatus) {
+    return { status: 'warning', message: 'Field status unknown' };
+  }
+
+  if (fieldStatus.present) {
+    return { status: 'success', message: 'Found' };
+  } else {
+    return { status: 'error', message: 'Missing' };
+  }
+}
+hasCriticalDataMissing(): boolean {
+  if (!this.invoiceData?.data_validation) return true;
+  
+  const criticalFields = [
+    'sender.company', 'total_amount_incl_vat', 'invoice.date', 
+    'invoice.number', 'company.vat_number'
+  ];
+  
+  return criticalFields.some(field => {
+    const fieldStatus = this.invoiceData.data_validation.field_status[field];
+    return !fieldStatus || !fieldStatus.present;
+  });
+}
+getDataQualityAssessment(): string {
+  if (!this.invoiceData?.data_validation) return 'Unknown';
+  
+  const score = this.invoiceData.data_validation.completeness_score;
+  if (score >= 95) return 'Excellent';
+  if (score >= 85) return 'Very Good';
+  if (score >= 75) return 'Good';
+  if (score >= 65) return 'Fair';
+  if (score >= 50) return 'Poor';
+  return 'Very Poor';
+}
+getSenderDataCount(): number {
+  if (!this.invoiceData?.sender) return 0;
+  
+  let count = 0;
+  if (this.invoiceData.sender.company) count++;
+  if (this.invoiceData.sender.address) count++;
+  if (this.invoiceData.sender.phone) count++;
+  if (this.invoiceData.sender.email) count++;
+  
+  return count;
+}
+getReceiverDataCount(): number {
+  if (!this.invoiceData?.receiver) return 0;
+  
+  let count = 0;
+  if (this.invoiceData.receiver.company) count++;
+  if (this.invoiceData.receiver.address) count++;
+  
+  return count;
+}
+getFinancialDataCount(): number {
+  if (!this.invoiceData) return 0;
+  
+  let count = 0;
+  if (this.invoiceData.total_amount_incl_vat) count++;
+  if (this.invoiceData.subtotal_amount_excl_vat) count++;
+  if (this.invoiceData.vat_percentage) count++;
+  if (this.invoiceData.items && this.invoiceData.items.length > 0) count++;
+  
+  return count;
+}
+getLegalDataCount(): number {
+  if (!this.invoiceData) return 0;
+  
+  let count = 0;
+  if (this.invoiceData.company?.country && this.invoiceData.company.country !== 'UNKNOWN') count++;
+  if (this.invoiceData.company?.kvk_number) count++;
+  if (this.invoiceData.company?.vat_number) count++;
+  if (this.invoiceData.company?.logo?.found) count++;
+  if (this.invoiceData.invoice?.number) count++;
+  if (this.invoiceData.invoice?.date) count++;
+  
+  return count;
+}
+private processOcrResultsEnhanced(data: any): void {
+  // Store the comprehensive invoice data
+  this.invoiceData = data.JsonModalInvoice;
+  
+  // Process extracted fields for visualization
+  if (data.JsonModalInvoice?.Fields) {
+    this.extractedFields = data.JsonModalInvoice.Fields.map((f: any) => ({
+      label: f.label,
+      value: f.value,
+      confidence: f.confidence ?? 1,
+      position: f.position,
+    }));
+  } else if (Array.isArray(data.groupedData)) {
+    const fields: OcrField[] = [];
+    data.groupedData.forEach((group: any[]) => {
+      group.forEach((item) => {
+        fields.push({
+          label: item.text,
+          value: item.text,
+          confidence: item.confidence ?? 1,
+          position: {
+            x: item.x,
+            y: item.y,
+            width: item.width || 100,
+            height: item.height || 20,
+          },
+        });
+      });
+    });
+    this.extractedFields = fields;
+  }
+
+  // Update statistics
+  this.updateStats();
+  
+  // Log validation results for debugging
+  if (this.invoiceData?.data_validation) {
+    console.log('Invoice data validation:', this.invoiceData.data_validation);
+    console.log(`Completeness: ${this.invoiceData.data_validation.completeness_score}%`);
+    
+    if (this.invoiceData.data_validation.missing_fields?.length > 0) {
+      console.log('Missing fields:', this.invoiceData.data_validation.missing_fields);
+    }
+  }
+}
+exportInvoiceData(): void {
+  if (!this.invoiceData) {
+    console.warn('No invoice data to export');
+    return;
+  }
+
+  const dataToExport = {
+    extraction_date: new Date().toISOString(),
+    file_name: this.selectedFile?.name,
+    completeness_score: this.invoiceData.data_validation?.completeness_score,
+    invoice_data: this.invoiceData
   };
 
-  console.log('Transformed coordinates:', result);
-  return result;
+  const dataStr = JSON.stringify(dataToExport, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(dataBlob);
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `invoice_data_${new Date().getTime()}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
-
 private isValidCoordinate(item: any): boolean {
   const isValid = (
     typeof item.x === "number" &&
@@ -859,6 +1405,11 @@ private isValidCoordinate(item: any): boolean {
       this.originalImageWidth = data.imageDimensions.width;
       this.originalImageHeight = data.imageDimensions.height;
       console.log("Image dimensions received:", this.originalImageWidth, this.originalImageHeight);
+    }
+
+    if (data.invoiceDetails) {
+      this.invoiceData = data.invoiceDetails;
+      console.log("Invoice details received:", this.invoiceData);
     }
 
     // Process new fields with better error handling
@@ -937,87 +1488,86 @@ private drawFieldOverlaysRealTime(): void {
   });
 }
 
-// Enhanced field box drawing for real-time visualization
-private drawFieldBoxRealTime(field: OcrField, index: number): void {
-  if (!this.ctx || !this.canvas || !field.position) return;
+  private drawFieldBoxRealTime(field: OcrField, index: number): void {
+    if (!this.ctx || !this.canvas || !field.position) return;
 
-  const canvasX = field.position.x;
-  const canvasY = field.position.y;
-  const width = field.position.width;
-  const height = field.position.height;
+    const canvasX = field.position.x;
+    const canvasY = field.position.y;
+    const width = field.position.width;
+    const height = field.position.height;
 
-  // Strict bounds checking with some tolerance
-  const tolerance = 50;
-  const isWithinBounds = (
-    canvasX >= -tolerance && 
-    canvasY >= -tolerance && 
-    canvasX < this.canvas.width + tolerance && 
-    canvasY < this.canvas.height + tolerance &&
-    width > 0 && height > 0
-  );
+    // Strict bounds checking with some tolerance
+    const tolerance = 50;
+    const isWithinBounds = (
+      canvasX >= -tolerance && 
+      canvasY >= -tolerance && 
+      canvasX < this.canvas.width + tolerance && 
+      canvasY < this.canvas.height + tolerance &&
+      width > 0 && height > 0
+    );
 
-  if (!isWithinBounds) {
-    console.log(`Field ${index} outside bounds or invalid size:`, { 
-      position: field.position,
-      canvasBounds: { width: this.canvas.width, height: this.canvas.height },
-      text: field.value
-    });
-    return;
-  }
+    if (!isWithinBounds) {
+      console.log(`Field ${index} outside bounds or invalid size:`, { 
+        position: field.position,
+        canvasBounds: { width: this.canvas.width, height: this.canvas.height },
+        text: field.value
+      });
+      return;
+    }
 
-  // Calculate intersection with canvas to avoid drawing outside
-  const drawX = Math.max(0, canvasX);
-  const drawY = Math.max(0, canvasY);
-  const drawWidth = Math.min(width, this.canvas.width - drawX);
-  const drawHeight = Math.min(height, this.canvas.height - drawY);
+    // Calculate intersection with canvas to avoid drawing outside
+    const drawX = Math.max(0, canvasX);
+    const drawY = Math.max(0, canvasY);
+    const drawWidth = Math.min(width, this.canvas.width - drawX);
+    const drawHeight = Math.min(height, this.canvas.height - drawY);
 
-  if (drawWidth <= 0 || drawHeight <= 0) {
-    return; // Nothing to draw
-  }
+    if (drawWidth <= 0 || drawHeight <= 0) {
+      return; // Nothing to draw
+    }
 
-  // Visual styling
-  let color = this.getConfidenceColor(field.confidence);
-  let alpha = 0.8;
-  let lineWidth = 2;
+    // Visual styling
+    let color = this.getConfidenceColor(field.confidence);
+    let alpha = 0.8;
+    let lineWidth = 2;
 
-  // Animation effects for new fields
-  if (field.isNew) {
-    const time = Date.now() * 0.005;
-    const pulse = Math.sin(time) * 0.3 + 0.7;
-    alpha = 0.6 + 0.4 * pulse;
-    lineWidth = 2 + Math.sin(time * 2) * 1;
-    color = "#00ff88";
+    // Animation effects for new fields
+    if (field.isNew) {
+      const time = Date.now() * 0.005;
+      const pulse = Math.sin(time) * 0.3 + 0.7;
+      alpha = 0.6 + 0.4 * pulse;
+      lineWidth = 2 + Math.sin(time * 2) * 1;
+      color = "#00ff88";
+      
+      // Remove new flag after animation
+      setTimeout(() => {
+        field.isNew = false;
+        this.updateCanvasRealTime();
+      }, 2000);
+    }
+
+    // Draw field box with effects
+    this.ctx.save();
+    this.ctx.shadowColor = color;
+    this.ctx.shadowBlur = field.isNew ? 10 : 5;
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = lineWidth;
+    this.ctx.globalAlpha = alpha;
     
-    // Remove new flag after animation
-    setTimeout(() => {
-      field.isNew = false;
-      this.updateCanvasRealTime();
-    }, 2000);
-  }
+    // Draw border
+    this.ctx.strokeRect(drawX, drawY, drawWidth, drawHeight);
+    
+    // Draw fill
+    this.ctx.fillStyle = color;
+    this.ctx.globalAlpha = alpha * 0.15;
+    this.ctx.fillRect(drawX, drawY, drawWidth, drawHeight);
+    
+    this.ctx.restore();
 
-  // Draw field box with effects
-  this.ctx.save();
-  this.ctx.shadowColor = color;
-  this.ctx.shadowBlur = field.isNew ? 10 : 5;
-  this.ctx.strokeStyle = color;
-  this.ctx.lineWidth = lineWidth;
-  this.ctx.globalAlpha = alpha;
-  
-  // Draw border
-  this.ctx.strokeRect(drawX, drawY, drawWidth, drawHeight);
-  
-  // Draw fill
-  this.ctx.fillStyle = color;
-  this.ctx.globalAlpha = alpha * 0.15;
-  this.ctx.fillRect(drawX, drawY, drawWidth, drawHeight);
-  
-  this.ctx.restore();
-
-  // Draw labels if enabled and there's enough space
-  if (this.showFieldLabels && drawWidth > 30 && drawHeight > 15) {
-    this.drawRealTimeFieldLabels(field, index, drawX, drawY, drawWidth, drawHeight, color);
+    // Draw labels if enabled and there's enough space
+    if (this.showFieldLabels && drawWidth > 30 && drawHeight > 15) {
+      this.drawRealTimeFieldLabels(field, index, drawX, drawY, drawWidth, drawHeight, color);
+    }
   }
-}
 
 
 // Enhanced field labels for real-time updates
@@ -1260,6 +1810,119 @@ private drawRealTimeFieldLabels(
     this.drawFinalResults()
     this.cdr.detectChanges()
   }
+  logAllExtractedData(): void {
+  if (!this.invoiceData) {
+    console.log('No invoice data available');
+    return;
+  }
+
+  console.group('📋 Complete Invoice Data Extraction');
+  
+  console.log('1. Sender Information:', {
+    company: this.invoiceData.sender?.company || 'Not found',
+    address: this.invoiceData.sender?.address || 'Not found',
+    phone: this.invoiceData.sender?.phone || 'Not found',
+    email: this.invoiceData.sender?.email || 'Not found',
+    website: this.invoiceData.sender?.website || 'Not found'
+  });
+
+  console.log('2. Receiver Information:', {
+    company: this.invoiceData.receiver?.company || 'Not found',
+    address: this.invoiceData.receiver?.address || 'Not found'
+  });
+
+  console.log('3. Country:', this.invoiceData.company?.country || 'Unknown');
+
+  console.log('4. Company Logo:', {
+    found: this.invoiceData.company?.logo?.found || false,
+    estimated_position: this.invoiceData.company?.logo?.estimated_position || null
+  });
+
+  console.log('5. Company Registration Number:', this.invoiceData.company?.kvk_number || 'Not found');
+
+  console.log('6-7. VAT/BTW Number:', this.invoiceData.company?.vat_number || 'Not found');
+
+  console.log('8. Invoice Date:', this.invoiceData.invoice?.date || 'Not found');
+
+  console.log('9. Invoice Number:', this.invoiceData.invoice?.number || 'Not found');
+
+  console.log('10. Payment Status:', {
+    paid: this.invoiceData.invoice?.paid,
+    method: this.invoiceData.invoice?.payment_method || 'Not specified',
+    confidence: this.invoiceData.invoice?.payment_confidence || 0
+  });
+
+  console.log('11. Total Amount (incl. VAT):', this.invoiceData.total_amount_incl_vat || 'Not found');
+
+  console.log('12. Subtotal (excl. VAT):', this.invoiceData.subtotal_amount_excl_vat || 'Not found');
+
+  console.log('13. VAT Percentage:', this.invoiceData.vat_percentage ? `${this.invoiceData.vat_percentage}%` : 'Not found');
+
+  console.log('14. Invoice Items:', {
+    count: this.invoiceData.items?.length || 0,
+    items: this.invoiceData.items || 'No items found'
+  });
+
+  console.log('15. IBAN Number:', this.invoiceData.bank?.iban || 'Not found');
+
+  console.log('16. Bank Account Holder:', this.invoiceData.bank?.account_holder || 'Not found');
+
+  console.log('Data Validation Summary:', this.invoiceData.data_validation);
+
+  console.groupEnd();
+}
+validateAllDataPoints(): { valid: number, total: number, missing: string[] } {
+  const dataPoints = [
+    { key: 'sender.company', name: '1. Sender Company' },
+    { key: 'receiver.company', name: '2. Receiver Company' },
+    { key: 'company.country', name: '3. Country' },
+    { key: 'company.logo.found', name: '4. Logo' },
+    { key: 'company.kvk_number', name: '5. Company Registration' },
+    { key: 'company.vat_number', name: '6-7. VAT Number' },
+    { key: 'invoice.date', name: '8. Invoice Date' },
+    { key: 'invoice.number', name: '9. Invoice Number' },
+    { key: 'invoice.paid', name: '10. Payment Status' },
+    { key: 'total_amount_incl_vat', name: '11. Total Amount' },
+    { key: 'subtotal_amount_excl_vat', name: '12. Subtotal' },
+    { key: 'vat_percentage', name: '13. VAT Percentage' },
+    { key: 'items', name: '14. Invoice Items' },
+    { key: 'bank.iban', name: '15. IBAN' },
+    { key: 'bank.account_holder', name: '16. Account Holder' }
+  ];
+
+  let validCount = 0;
+  const missing: string[] = [];
+
+  dataPoints.forEach(point => {
+    const value = this.getNestedValue(this.invoiceData, point.key);
+    let isValid = false;
+
+    if (point.key === 'items') {
+      isValid = Array.isArray(value) && value.length > 0;
+    } else if (point.key === 'company.logo.found') {
+      isValid = value === true;
+    } else if (point.key === 'invoice.paid') {
+      isValid = typeof value === 'boolean';
+    } else {
+      isValid = value !== null && value !== undefined && value !== '' && value !== 'UNKNOWN';
+    }
+
+    if (isValid) {
+      validCount++;
+    } else {
+      missing.push(point.name);
+    }
+  });
+
+  return {
+    valid: validCount,
+    total: dataPoints.length,
+    missing
+  };
+}
+private getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((current, key) => current?.[key], obj);
+}
 
   private handleProcessingError(error: any): void {
     this.isProcessing = false

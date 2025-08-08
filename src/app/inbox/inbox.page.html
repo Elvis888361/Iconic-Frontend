@@ -1,74 +1,456 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>PDF Real-Time OCR Demo</ion-title>
+    <ion-title>Advanced PDF OCR & Invoice Analysis</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+
+  <div class="dashboard-container" style=" ">
+        <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <span class="logo-text">je factuurbox</span>
+      <span class="year">2024</span>
+    </div>
+    
+    <nav>
+      <a 
+        *ngFor="let item of navigationItems" 
+        [class.active]="item.active"
+        (click)="onNavigationClick(item)"
+        class="nav-item"
+      >
+        <span class="nav-icon">{{ item.icon }}</span>
+        {{ item.label }}
+      </a>
+    </nav>
+    
+    <div class="upload-btn" (click)="onUploadClick()">
+      <div>📁</div>
+      <div>Upload</div>
+    </div>
+  </div>
+  <div>
+  <div class="main-content" style="padding-left:100px width:100%; margin: 0 auto; display: flex; flex-direction: column;">
     
     <!-- File Upload Section -->
-    <div class="upload-section" style="margin-bottom: 20px; text-align: center;">
-      <h2>Upload a PDF or Image</h2>
+    <div class="upload-section" style="margin-bottom: 20px; text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+      <h2>📄 Upload Invoice PDF or Image</h2>
       <div style="margin: 15px 0;">
         <input #fileInputRef type="file" (change)="onFileSelected($event)" 
                accept="application/pdf,image/*" 
-               style="margin-right: 10px;" />
+               style="margin-right: 10px; padding: 10px;" />
         <ion-button color="danger" (click)="clearSelectedFile()" *ngIf="selectedFile">
-          Clear
+          🗑️ Clear
         </ion-button>
         <ion-button color="primary" (click)="startOcrProcessing()" 
                    [disabled]="!selectedFile || isProcessing">
-          Start OCR
+          🚀 Start OCR Analysis
         </ion-button>
       </div>
       
       <!-- Controls -->
-      <div *ngIf="selectedFile && !isProcessing" style="margin: 10px 0;">
-        <ion-button fill="outline" size="small" (click)="toggleFieldLabels()">
-          {{ showFieldLabels ? 'Hide' : 'Show' }} Labels
-        </ion-button>
-        <ion-button fill="outline" size="small" (click)="toggleConfidenceFilter()">
-          Filter: {{ confidenceFilter }}%+
-        </ion-button>
-        <ion-button fill="outline" size="small" (click)="toggleDebugMode()">
-          Debug Mode
-        </ion-button>
+      <!-- Add this to your controls section in the HTML file -->
+<!-- Enhanced Controls Section -->
+<div *ngIf="selectedFile && !isProcessing" style="margin: 10px 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+  <ion-button fill="outline" size="small" (click)="toggleFieldLabels()">
+    {{ showFieldLabels ? '🏷️ Hide' : '🏷️ Show' }} Labels
+  </ion-button>
+  <ion-button fill="outline" size="small" (click)="toggleConfidenceFilter()">
+    🎯 Filter: {{ confidenceFilter }}%+
+  </ion-button>
+  <ion-button fill="outline" size="small" (click)="toggleDebugMode()">
+    🔧 Debug Mode
+  </ion-button>
+  <ion-button fill="outline" size="small" (click)="showInvoiceDetails = !showInvoiceDetails">
+    {{ showInvoiceDetails ? '📊 Hide' : '📊 Show' }} Invoice Details
+  </ion-button>
+  <!-- New Export Button -->
+  <ion-button fill="outline" size="small" color="success" (click)="exportInvoiceData()" *ngIf="invoiceData">
+    💾 Export Data
+  </ion-button>
+</div>
+
+<!-- Data Quality Summary -->
+<div *ngIf="invoiceData?.data_validation && processingComplete" 
+     style="text-align: center; margin: 15px 0;">
+  <div style="background: linear-gradient(90deg, #f8f9fa, #e9ecef); padding: 20px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">
+      📈 Data Quality: {{ getDataQualityAssessment() }}
+    </div>
+    <div style="display: flex; gap: 20px; justify-content: center; align-items: center;">
+      <div>
+        <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">
+          {{ invoiceData.data_validation.completeness_score }}%
+        </div>
+        <div style="font-size: 0.9em; color: #666;">Complete</div>
+      </div>
+      <div>
+        <div style="font-size: 1.5em; font-weight: bold;" [style.color]="hasCriticalDataMissing() ? '#dc3545' : '#28a745'">
+          {{ hasCriticalDataMissing() ? '⚠️' : '✅' }}
+        </div>
+        <div style="font-size: 0.9em; color: #666;">Critical Data</div>
+      </div>
+      <div>
+        <div style="font-size: 1.5em; font-weight: bold; color: #6f42c1;">
+          {{ invoiceData.data_validation.field_status ? Object.keys(invoiceData.data_validation.field_status).length : 0 }}
+        </div>
+        <div style="font-size: 0.9em; color: #666;">Fields Checked</div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Canvas Container -->
-    <div class="canvas-container" style="position: relative; margin: 20px auto; max-width: 1000px;">
-      <canvas #documentCanvas 
-              [width]="canvasWidth" 
-              [height]="canvasHeight" 
-              style="border: 2px solid #ddd; background: #f8f9fa; display: block; margin: 0 auto;"
-              (click)="onCanvasClick($event)">
-      </canvas>
+<!-- Enhanced Statistics with All 16 Points -->
+<div *ngIf="invoiceData?.data_validation?.field_status" 
+     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 25px 0;">
+  
+  <!-- Sender Data -->
+  <div style="background: linear-gradient(135deg, #007bff, #0056b3); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
+      {{ getSenderDataCount() }}/4
+    </div>
+    <div style="font-size: 0.9em; opacity: 0.9;">🏢 Sender Data Points</div>
+  </div>
+  
+  <!-- Receiver Data -->
+  <div style="background: linear-gradient(135deg, #28a745, #20c997); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
+      {{ getReceiverDataCount() }}/2
+    </div>
+    <div style="font-size: 0.9em; opacity: 0.9;">👤 Receiver Data Points</div>
+  </div>
+  
+  <!-- Financial Data -->
+  <div style="background: linear-gradient(135deg, #dc3545, #c82333); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
+      {{ getFinancialDataCount() }}/4
+    </div>
+    <div style="font-size: 0.9em; opacity: 0.9;">💰 Financial Data Points</div>
+  </div>
+
+  <!-- Legal/Registration Data -->
+  <div style="background: linear-gradient(135deg, #6f42c1, #5a32a3); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
+      {{ getLegalDataCount() }}/6
+    </div>
+    <div style="font-size: 0.9em; opacity: 0.9;">🏛️ Legal/Registration Data</div>
+  </div>
+</div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div style="display: flex; gap: 20px; align-items: flex-start;">
       
-      <!-- Processing Overlay -->
-      <div *ngIf="isProcessing" 
-           style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                  background: rgba(0,0,0,0.1); pointer-events: none;
-                  display: flex; flex-direction: column; justify-content: flex-start;">
+      <!-- Canvas Container -->
+      <div class="canvas-container" style="position: relative; flex: 1; ">
+        <canvas #documentCanvas 
+                [width]="canvasWidth" 
+                [height]="canvasHeight" 
+                style="border: 2px solid #ddd; background: #f8f9fa; display: block; width: 100%; border-radius: 8px;"
+                (click)="onCanvasClick($event)">
+        </canvas>
         
-        <!-- Processing Header -->
-        <div style="background: rgba(0,0,0,0.8); color: #fff; padding: 15px; text-align: center;">
-          <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">
-            {{ currentProcessingStep }}
-          </div>
+        <!-- Processing Overlay -->
+        <div *ngIf="isProcessing" 
+             style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                    background: rgba(0,0,0,0.1); pointer-events: none;
+                    display: flex; flex-direction: column; justify-content: flex-start; border-radius: 8px;">
           
-          <!-- Progress Bar -->
-          <div style="width: 80%; margin: 0 auto; background: #333; border-radius: 10px; height: 20px; overflow: hidden;">
-            <div [style.width.%]="ocrProgress" 
-                 style="background: linear-gradient(90deg, #007bff, #00c6ff); height: 100%; 
-                        transition: width 0.3s ease; border-radius: 10px;">
+          <!-- Processing Header -->
+          <div style="background: linear-gradient(90deg, #007bff, #0056b3); color: #fff; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <div style="font-size: 1.3em; font-weight: bold; margin-bottom: 15px;">
+              🔍 {{ currentProcessingStep }}
+            </div>
+            
+            <!-- Progress Bar -->
+            <div style="width: 90%; margin: 0 auto; background: rgba(255,255,255,0.2); border-radius: 15px; height: 25px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
+              <div [style.width.%]="ocrProgress" 
+                   style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; 
+                          transition: width 0.5s ease; border-radius: 15px; position: relative;">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+                  {{ ocrProgress | number:'1.0-0' }}%
+                </div>
+              </div>
+            </div>
+            
+            <!-- Stats -->
+            <div style="margin-top: 15px; font-size: 1em; display: flex; justify-content: center; gap: 30px;">
+              <span>⏱️ Processing...</span>
+              <span>📝 {{ totalFieldsProcessed }} fields found</span>
             </div>
           </div>
-          
-          <!-- Stats -->
-          <div style="margin-top: 10px; font-size: 0.9em;">
-            {{ ocrProgress | number:'1.0-0' }}% Complete • {{ totalFieldsProcessed }} fields discovered
+        </div>
+      </div>
+
+      <!-- Invoice Details Panel -->
+      <div *ngIf="showInvoiceDetails && invoiceData" 
+           style="flex: 0 0 400px; background: white; border: 1px solid #ddd; border-radius: 10px; padding: 20px; max-height: 600px; overflow-y: auto;">
+        <h3 style="margin: 0 0 20px 0; color: #007bff; text-align: center;">📋 Invoice Analysis</h3>
+        
+        <!-- Sender Information -->
+        <div *ngIf="invoiceData.sender" style="margin-bottom: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #155724;">🏢 Sender (Invoice From)</h4>
+          <div *ngIf="invoiceData.sender.company"><strong>Company:</strong> {{ invoiceData.sender.company }}</div>
+          <div *ngIf="invoiceData.sender.address"><strong>Address:</strong> {{ invoiceData.sender.address }}</div>
+          <div *ngIf="invoiceData.sender.postcode || invoiceData.sender.city">
+            <strong>Location:</strong> {{ invoiceData.sender.postcode }} {{ invoiceData.sender.city }}
+          </div>
+          <div *ngIf="invoiceData.sender.phone"><strong>Phone:</strong> {{ invoiceData.sender.phone }}</div>
+          <div *ngIf="invoiceData.sender.email"><strong>Email:</strong> {{ invoiceData.sender.email }}</div>
+          <div *ngIf="invoiceData.sender.website"><strong>Website:</strong> {{ invoiceData.sender.website }}</div>
+        </div>
+
+        <!-- Receiver Information -->
+        <div *ngIf="invoiceData.receiver" style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #0d47a1;">👤 Receiver (Invoice To)</h4>
+          <div *ngIf="invoiceData.receiver.company"><strong>Company:</strong> {{ invoiceData.receiver.company }}</div>
+          <div *ngIf="invoiceData.receiver.address"><strong>Address:</strong> {{ invoiceData.receiver.address }}</div>
+          <div *ngIf="invoiceData.receiver.postcode || invoiceData.receiver.city">
+            <strong>Location:</strong> {{ invoiceData.receiver.postcode }} {{ invoiceData.receiver.city }}
+          </div>
+        </div>
+
+        <!-- Company Registration -->
+        <div *ngIf="invoiceData.company" style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #856404;">🏛️ Company Registration</h4>
+          <div *ngIf="invoiceData.company.country">
+            <strong>Country:</strong> 
+            <span [style.color]="getCountryColor(invoiceData.company.country)">
+              {{ getCountryName(invoiceData.company.country) }} ({{ invoiceData.company.country }})
+            </span>
+          </div>
+          <div *ngIf="invoiceData.company.vat_number"><strong>VAT/BTW Number:</strong> {{ invoiceData.company.vat_number }}</div>
+          <div *ngIf="invoiceData.company.kvk_number"><strong>KvK Number:</strong> {{ invoiceData.company.kvk_number }}</div>
+        </div>
+
+        <!-- Invoice Details -->
+        <div *ngIf="invoiceData.invoice" style="margin-bottom: 20px; padding: 15px; background: #f8d7da; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #721c24;">📄 Invoice Information</h4>
+          <div *ngIf="invoiceData.invoice.number"><strong>Invoice Number:</strong> {{ invoiceData.invoice.number }}</div>
+          <div *ngIf="invoiceData.invoice.date"><strong>Date:</strong> {{ invoiceData.invoice.date }}</div>
+          <div *ngIf="invoiceData.invoice.paid !== undefined">
+            <strong>Payment Status:</strong> 
+            <span [style.color]="invoiceData.invoice.paid ? 'green' : 'red'">
+              {{ invoiceData.invoice.paid ? '✅ Paid' : '❌ Unpaid' }}
+            </span>
+          </div>
+          <div *ngIf="invoiceData.invoice.payment_method"><strong>Payment Method:</strong> {{ invoiceData.invoice.payment_method }}</div>
+        </div>
+
+        <!-- Financial Information -->
+        <div *ngIf="invoiceData.total_amount_incl_vat || invoiceData.subtotal_amount_excl_vat" 
+             style="margin-bottom: 20px; padding: 15px; background: #d1ecf1; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #0c5460;">💰 Financial Summary</h4>
+          <div *ngIf="invoiceData.subtotal_amount_excl_vat">
+            <strong>Subtotal (excl. VAT):</strong> €{{ invoiceData.subtotal_amount_excl_vat | number:'1.2-2' }}
+          </div>
+          <div *ngIf="invoiceData.vat_amount_item">
+            <strong>VAT Amount:</strong> €{{ invoiceData.vat_amount_item | number:'1.2-2' }}
+          </div>
+          <div *ngIf="invoiceData.vat_percentage">
+            <strong>VAT Percentage:</strong> {{ invoiceData.vat_percentage | number:'1.0-0' }}%
+          </div>
+          <div *ngIf="invoiceData.total_amount_incl_vat" style="font-size: 1.2em; font-weight: bold; color: #0c5460; margin-top: 10px; padding-top: 10px; border-top: 2px solid #0c5460;">
+            <strong>Total (incl. VAT):</strong> €{{ invoiceData.total_amount_incl_vat | number:'1.2-2' }}
+          </div>
+        </div>
+
+        <!-- Bank Details -->
+        <div *ngIf="invoiceData.bank && (invoiceData.bank.iban || invoiceData.bank.account_holder)" 
+             style="margin-bottom: 20px; padding: 15px; background: #e2e3e5; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #383d41;">🏦 Bank Information</h4>
+          <div *ngIf="invoiceData.bank.iban"><strong>IBAN:</strong> {{ invoiceData.bank.iban }}</div>
+          <div *ngIf="invoiceData.bank.account_holder"><strong>Account Holder:</strong> {{ invoiceData.bank.account_holder }}</div>
+        </div>
+        <div *ngIf="invoiceData?.data_validation" 
+     style="margin-bottom: 20px; padding: 15px; border-radius: 8px;"
+     [style.background]="getCompletenessColor(invoiceData.data_validation.completeness_score)">
+  <h4 style="margin: 0 0 10px 0; color: white;">📊 Data Completeness: {{ invoiceData.data_validation.completeness_score }}%</h4>
+  
+  <!-- Progress bar -->
+  <div style="background: rgba(255,255,255,0.3); border-radius: 10px; height: 20px; overflow: hidden;">
+    <div [style.width.%]="invoiceData.data_validation.completeness_score" 
+         style="background: rgba(255,255,255,0.8); height: 100%; border-radius: 10px; transition: width 0.5s ease;">
+    </div>
+  </div>
+  
+  <div style="margin-top: 10px; color: white; font-size: 0.9em;">
+    <span *ngIf="invoiceData.data_validation.missing_fields?.length > 0">
+      {{ invoiceData.data_validation.missing_fields.length }} fields missing
+    </span>
+    <span *ngIf="invoiceData.data_validation.warnings?.length > 0" style="margin-left: 15px;">
+      {{ invoiceData.data_validation.warnings.length }} warnings
+    </span>
+  </div>
+</div>
+
+<!-- 16-Point Checklist -->
+<div *ngIf="invoiceData" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+  <h4 style="margin: 0 0 15px 0; color: #333;">📋 16-Point Invoice Data Checklist</h4>
+  
+  <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+    <!-- 1. Sender Information -->
+    <div class="checklist-item" [style.color]="invoiceData.sender?.company ? 'green' : 'red'">
+      <span>{{ invoiceData.sender?.company ? '✅' : '❌' }}</span>
+      <strong>1. Sender Info:</strong> 
+      <span *ngIf="invoiceData.sender?.company">{{ invoiceData.sender.company }}</span>
+      <span *ngIf="!invoiceData.sender?.company" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 2. Receiver Information -->
+    <div class="checklist-item" [style.color]="invoiceData.receiver?.company ? 'green' : 'red'">
+      <span>{{ invoiceData.receiver?.company ? '✅' : '❌' }}</span>
+      <strong>2. Receiver Info:</strong>
+      <span *ngIf="invoiceData.receiver?.company">{{ invoiceData.receiver.company }}</span>
+      <span *ngIf="!invoiceData.receiver?.company" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 3. Country -->
+    <div class="checklist-item" [style.color]="invoiceData.company?.country && invoiceData.company.country !== 'UNKNOWN' ? 'green' : 'red'">
+      <span>{{ invoiceData.company?.country && invoiceData.company.country !== 'UNKNOWN' ? '✅' : '❌' }}</span>
+      <strong>3. Country:</strong>
+      <span *ngIf="invoiceData.company?.country && invoiceData.company.country !== 'UNKNOWN'">
+        {{ getCountryName(invoiceData.company.country) }} ({{ invoiceData.company.country }})
+      </span>
+      <span *ngIf="!invoiceData.company?.country || invoiceData.company.country === 'UNKNOWN'" style="color: #999;">
+        Unknown
+      </span>
+    </div>
+    
+    <!-- 4. Company Logo -->
+    <div class="checklist-item" [style.color]="invoiceData.company?.logo?.found ? 'green' : 'orange'">
+      <span>{{ invoiceData.company?.logo?.found ? '✅' : '⚠️' }}</span>
+      <strong>4. Logo:</strong>
+      <span *ngIf="invoiceData.company?.logo?.found">Detected/Estimated</span>
+      <span *ngIf="!invoiceData.company?.logo?.found" style="color: #999;">Not detected</span>
+    </div>
+    
+    <!-- 5. Company Registration Number -->
+    <div class="checklist-item" [style.color]="invoiceData.company?.kvk_number ? 'green' : 'red'">
+      <span>{{ invoiceData.company?.kvk_number ? '✅' : '❌' }}</span>
+      <strong>5. Company Reg. No:</strong>
+      <span *ngIf="invoiceData.company?.kvk_number">{{ invoiceData.company.kvk_number }}</span>
+      <span *ngIf="!invoiceData.company?.kvk_number" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 6-7. VAT/BTW Number -->
+    <div class="checklist-item" [style.color]="invoiceData.company?.vat_number ? 'green' : 'red'">
+      <span>{{ invoiceData.company?.vat_number ? '✅' : '❌' }}</span>
+      <strong>6-7. VAT/BTW No:</strong>
+      <span *ngIf="invoiceData.company?.vat_number">{{ invoiceData.company.vat_number }}</span>
+      <span *ngIf="!invoiceData.company?.vat_number" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 8. Invoice Date -->
+    <div class="checklist-item" [style.color]="invoiceData.invoice?.date ? 'green' : 'red'">
+      <span>{{ invoiceData.invoice?.date ? '✅' : '❌' }}</span>
+      <strong>8. Invoice Date:</strong>
+      <span *ngIf="invoiceData.invoice?.date">{{ invoiceData.invoice.date }}</span>
+      <span *ngIf="!invoiceData.invoice?.date" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 9. Invoice Number -->
+    <div class="checklist-item" [style.color]="invoiceData.invoice?.number ? 'green' : 'red'">
+      <span>{{ invoiceData.invoice?.number ? '✅' : '❌' }}</span>
+      <strong>9. Invoice No:</strong>
+      <span *ngIf="invoiceData.invoice?.number">{{ invoiceData.invoice.number }}</span>
+      <span *ngIf="!invoiceData.invoice?.number" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 10. Payment Status -->
+    <div class="checklist-item" [style.color]="invoiceData.invoice?.paid !== undefined ? 'green' : 'orange'">
+      <span>{{ invoiceData.invoice?.paid !== undefined ? '✅' : '⚠️' }}</span>
+      <strong>10. Payment:</strong>
+      <span *ngIf="invoiceData.invoice?.paid !== undefined">
+        {{ invoiceData.invoice.paid ? 'Paid' : 'Unpaid' }}
+        <span *ngIf="invoiceData.invoice?.payment_method"> via {{ invoiceData.invoice.payment_method }}</span>
+      </span>
+      <span *ngIf="invoiceData.invoice?.paid === undefined" style="color: #999;">Status unknown</span>
+    </div>
+    
+    <!-- 11. Total Amount -->
+    <div class="checklist-item" [style.color]="invoiceData.total_amount_incl_vat ? 'green' : 'red'">
+      <span>{{ invoiceData.total_amount_incl_vat ? '✅' : '❌' }}</span>
+      <strong>11. Total incl. VAT:</strong>
+      <span *ngIf="invoiceData.total_amount_incl_vat">€{{ invoiceData.total_amount_incl_vat | number:'1.2-2' }}</span>
+      <span *ngIf="!invoiceData.total_amount_incl_vat" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 12. Subtotal -->
+    <div class="checklist-item" [style.color]="invoiceData.subtotal_amount_excl_vat ? 'green' : 'red'">
+      <span>{{ invoiceData.subtotal_amount_excl_vat ? '✅' : '❌' }}</span>
+      <strong>12. Subtotal excl. VAT:</strong>
+      <span *ngIf="invoiceData.subtotal_amount_excl_vat">€{{ invoiceData.subtotal_amount_excl_vat | number:'1.2-2' }}</span>
+      <span *ngIf="!invoiceData.subtotal_amount_excl_vat" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 13. VAT Percentage -->
+    <div class="checklist-item" [style.color]="invoiceData.vat_percentage ? 'green' : 'red'">
+      <span>{{ invoiceData.vat_percentage ? '✅' : '❌' }}</span>
+      <strong>13. VAT %:</strong>
+      <span *ngIf="invoiceData.vat_percentage">{{ invoiceData.vat_percentage | number:'1.0-0' }}%</span>
+      <span *ngIf="!invoiceData.vat_percentage" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 14. Invoice Items -->
+    <div class="checklist-item" [style.color]="invoiceData.items && invoiceData.items.length > 0 ? 'green' : 'red'">
+      <span>{{ invoiceData.items && invoiceData.items.length > 0 ? '✅' : '❌' }}</span>
+      <strong>14. Items:</strong>
+      <span *ngIf="invoiceData.items && invoiceData.items.length > 0">{{ invoiceData.items.length }} items found</span>
+      <span *ngIf="!invoiceData.items || invoiceData.items.length === 0" style="color: #999;">No items found</span>
+    </div>
+    
+    <!-- 15. IBAN -->
+    <div class="checklist-item" [style.color]="invoiceData.bank?.iban ? 'green' : 'red'">
+      <span>{{ invoiceData.bank?.iban ? '✅' : '❌' }}</span>
+      <strong>15. IBAN:</strong>
+      <span *ngIf="invoiceData.bank?.iban">{{ invoiceData.bank.iban }}</span>
+      <span *ngIf="!invoiceData.bank?.iban" style="color: #999;">Not found</span>
+    </div>
+    
+    <!-- 16. Account Holder -->
+    <div class="checklist-item" [style.color]="invoiceData.bank?.account_holder ? 'green' : 'red'">
+      <span>{{ invoiceData.bank?.account_holder ? '✅' : '❌' }}</span>
+      <strong>16. Account Holder:</strong>
+      <span *ngIf="invoiceData.bank?.account_holder">{{ invoiceData.bank.account_holder }}</span>
+      <span *ngIf="!invoiceData.bank?.account_holder" style="color: #999;">Not found</span>
+    </div>
+  </div>
+</div>
+
+<!-- Missing Fields Alert -->
+<div *ngIf="invoiceData?.data_validation?.missing_fields?.length > 0" 
+     style="margin-bottom: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px;">
+  <h5 style="margin: 0 0 10px 0; color: #856404;">⚠️ Missing Information</h5>
+  <div *ngFor="let field of invoiceData.data_validation.missing_fields" style="color: #856404; font-size: 0.9em;">
+    • {{ field.description }}
+  </div>
+</div>
+
+<!-- Warnings -->
+<div *ngIf="invoiceData?.data_validation?.warnings?.length > 0" 
+     style="margin-bottom: 20px; padding: 15px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 8px;">
+  <h5 style="margin: 0 0 10px 0; color: #0c5460;">ℹ️ Warnings</h5>
+  <div *ngFor="let warning of invoiceData.data_validation.warnings" style="color: #0c5460; font-size: 0.9em;">
+    • {{ warning }}
+  </div>
+</div>
+
+        <!-- Items Summary -->
+        <div *ngIf="invoiceData.items && invoiceData.items.length > 0" 
+             style="margin-bottom: 20px; padding: 15px; background: #f4edff; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #6f42c1;">📦 Items ({{ invoiceData.items.length }})</h4>
+          <div *ngFor="let item of invoiceData.items; let i = index" 
+               style="margin-bottom: 10px; padding: 8px; background: white; border-radius: 4px; font-size: 0.9em;">
+            <div><strong>{{ i + 1 }}.</strong> {{ item.name }}</div>
+            <div *ngIf="item.article_number" style="color: #666;"><strong>Article:</strong> {{ item.article_number }}</div>
+            <div style="display: flex; gap: 15px; color: #666;">
+              <span *ngIf="item.quantity">Qty: {{ item.quantity }}</span>
+              <span *ngIf="item.item_unit_price">Price: €{{ item.item_unit_price }}</span>
+              <span *ngIf="item.item_amount_excl_vat">Total: €{{ item.item_amount_excl_vat }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -76,114 +458,156 @@
 
     <!-- File Info -->
     <div *ngIf="selectedFile" style="text-align: center; margin: 15px 0;">
-      <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; display: inline-block;">
-        <strong>Selected:</strong> {{ selectedFile.name }}
-        <span style="margin-left: 15px; color: #666;">
-          {{ (selectedFile.size / 1024 / 1024) | number:'1.1-1' }} MB
+      <div style="background: #e3f2fd; padding: 15px; border-radius: 10px; display: inline-block;">
+        <strong>📁 Selected File:</strong> {{ selectedFile.name }}
+        <span style="margin-left: 20px; color: #666;">
+          📊 {{ (selectedFile.size / 1024 / 1024) | number:'1.1-1' }} MB
+        </span>
+        <span style="margin-left: 20px; color: #666;">
+          📅 {{ selectedFile.lastModified | date:'medium' }}
         </span>
       </div>
     </div>
 
     <!-- Processing Complete -->
     <div *ngIf="processingComplete" style="text-align: center; margin: 15px 0;">
-      <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; display: inline-block;">
-        <strong>✓ Processing Complete!</strong>
-        <div style="margin-top: 5px; font-size: 0.9em;">
-          Click on highlighted areas to view field details
+      <div style="background: linear-gradient(90deg, #d4edda, #c3e6cb); color: #155724; padding: 20px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 1.2em; font-weight: bold;">✅ Processing Complete!</div>
+        <div style="margin-top: 8px; font-size: 0.95em;">
+          🖱️ Click on highlighted areas to view field details • 📊 Check the invoice analysis panel
         </div>
       </div>
     </div>
 
-    <!-- Statistics -->
+    <!-- Statistics Dashboard -->
     <div *ngIf="extractedFields.length > 0" 
-         style="display: flex; justify-content: center; gap: 20px; margin: 20px 0; flex-wrap: wrap;">
+         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 25px 0;">
       
-      <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; min-width: 150px; text-align: center;">
-        <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">
+      <div style="background: linear-gradient(135deg, #007bff, #0056b3); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
           {{ extractedFields.length }}
         </div>
-        <div style="font-size: 0.9em; color: #666;">Total Fields</div>
+        <div style="font-size: 0.9em; opacity: 0.9;">📝 Total Text Fields</div>
       </div>
       
-      <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; min-width: 150px; text-align: center;">
-        <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">
+      <div style="background: linear-gradient(135deg, #28a745, #20c997); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
           {{ getHighConfidenceCount() }}
         </div>
-        <div style="font-size: 0.9em; color: #666;">High Confidence (>80%)</div>
+        <div style="font-size: 0.9em; opacity: 0.9;">🎯 High Confidence (>80%)</div>
       </div>
       
-      <div style="background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 15px; min-width: 150px; text-align: center;">
-        <div style="font-size: 1.5em; font-weight: bold; color: #17a2b8;">
+      <div style="background: linear-gradient(135deg, #17a2b8, #138496); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
           {{ avgConfidencePercent | number:'1.0-1' }}%
         </div>
-        <div style="font-size: 0.9em; color: #666;">Average Confidence</div>
+        <div style="font-size: 0.9em; opacity: 0.9;">📊 Average Confidence</div>
+      </div>
+
+      <div style="background: linear-gradient(135deg, #6f42c1, #5a32a3); color: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        <div style="font-size: 2em; font-weight: bold; margin-bottom: 5px;">
+          {{ invoiceData?.items?.length || 0 }}
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.9;">📦 Invoice Items</div>
       </div>
     </div>
 
     <!-- Field Details Modal -->
     <div *ngIf="showFieldModal && selectedField" 
          style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
-                background: rgba(0,0,0,0.5); z-index: 1000; 
+                background: rgba(0,0,0,0.6); z-index: 1000; 
                 display: flex; align-items: center; justify-content: center;"
          (click)="closeFieldModal()">
       
-      <div style="background: white; border-radius: 12px; padding: 25px; max-width: 500px; width: 90%; 
-                  box-shadow: 0 10px 30px rgba(0,0,0,0.3);"
+      <div style="background: white; border-radius: 15px; padding: 30px; max-width: 600px; width: 90%; 
+                  box-shadow: 0 15px 40px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto;"
            (click)="$event.stopPropagation()">
         
-        <h3 style="margin: 0 0 20px 0; color: #333;">Field Details</h3>
+        <h3 style="margin: 0 0 25px 0; color: #333; text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 15px;">
+          🔍 Field Details
+        </h3>
         
-        <div style="margin-bottom: 15px;">
-          <strong>Text:</strong>
-          <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-top: 5px; 
-                      font-family: monospace; word-break: break-all;">
+        <div style="margin-bottom: 20px;">
+          <strong style="color: #007bff;">📝 Extracted Text:</strong>
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 8px; 
+                      font-family: 'Courier New', monospace; word-break: break-all; border-left: 4px solid #007bff;">
             {{ selectedField.value }}
           </div>
         </div>
         
-        <div style="margin-bottom: 15px;">
-          <strong>Confidence:</strong>
-          <div style="margin-top: 5px;">
-            <div style="background: #e9ecef; border-radius: 10px; height: 20px; overflow: hidden;">
+        <div style="margin-bottom: 20px;">
+          <strong style="color: #28a745;">🎯 Confidence Level:</strong>
+          <div style="margin-top: 8px;">
+            <div style="background: #e9ecef; border-radius: 15px; height: 25px; overflow: hidden; position: relative;">
               <div [style.width.%]="selectedField.confidence * 100"
                    [style.background]="getConfidenceColor(selectedField.confidence)"
-                   style="height: 100%; transition: width 0.3s;">
+                   style="height: 100%; transition: width 0.5s ease; border-radius: 15px;">
               </div>
+              <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                           font-weight: bold; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+                {{ (selectedField.confidence * 100) | number:'1.1-1' }}%
+              </span>
             </div>
-            <span style="font-size: 0.9em; color: #666;">
-              {{ (selectedField.confidence * 100) | number:'1.1-1' }}%
-            </span>
           </div>
         </div>
         
-        <div style="margin-bottom: 20px;">
-          <strong>Position:</strong>
-          <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-            X: {{ selectedField.position?.x | number:'1.0-0' }}, 
-            Y: {{ selectedField.position?.y | number:'1.0-0' }}
-            <br>
-            Size: {{ selectedField.position?.width | number:'1.0-0' }} × 
-                  {{ selectedField.position?.height | number:'1.0-0' }}
+        <div style="margin-bottom: 25px;">
+          <strong style="color: #6c757d;">📐 Position Information:</strong>
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 8px; font-family: monospace;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div><strong>X:</strong> {{ selectedField.position.x | number:'1.0-0' }}px</div>
+              <div><strong>Y:</strong> {{ selectedField.position.y | number:'1.0-0' }}px</div>
+              <div><strong>Width:</strong> {{ selectedField.position.width | number:'1.0-0' }}px</div>
+              <div><strong>Height:</strong> {{ selectedField.position.height | number:'1.0-0' }}px</div>
+            </div>
           </div>
         </div>
         
-        <div style="text-align: right;">
-          <ion-button fill="outline" (click)="closeFieldModal()">
-            Close
+        <div style="text-align: center; display: flex; gap: 15px; justify-content: center;">
+          <ion-button fill="outline" color="secondary" (click)="closeFieldModal()">
+            ❌ Close
+          </ion-button>
+          <ion-button color="primary" (click)="copyFieldText()">
+            📋 Copy Text
           </ion-button>
         </div>
       </div>
     </div>
 
-    <!-- Instructions -->
-    <div *ngIf="!selectedFile" style="text-align: center; margin: 30px 0; color: #666;">
-      <div style="font-size: 1.1em; margin-bottom: 10px;">
-        📄 Select a PDF or image file to begin OCR processing
+    <!-- Instructions for new users -->
+    <div *ngIf="!selectedFile" style="text-align: center; margin: 40px 0; padding: 40px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 15px;">
+      <div style="font-size: 3em; margin-bottom: 20px;">📄</div>
+      <div style="font-size: 1.3em; margin-bottom: 15px; color: #495057;">
+        🚀 Advanced Invoice OCR & Analysis Tool
       </div>
-      <div style="font-size: 0.9em;">
-        Supported formats: PDF, JPG, PNG, GIF, BMP
+      <div style="font-size: 1em; color: #6c757d; margin-bottom: 20px;">
+        Upload a PDF or image file to extract comprehensive invoice information including:
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; max-width: 800px; margin: 0 auto;">
+        <div style="background: white; padding: 15px; border-radius: 8px; text-align: left;">
+          <div style="font-weight: bold; color: #007bff; margin-bottom: 8px;">📋 Company Information</div>
+          <div style="font-size: 0.9em; color: #666;">Sender & receiver details, addresses, contact info</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; text-align: left;">
+          <div style="font-weight: bold; color: #28a745; margin-bottom: 8px;">🏛️ Registration Data</div>
+          <div style="font-size: 0.9em; color: #666;">VAT numbers, KvK numbers, country identification</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; text-align: left;">
+          <div style="font-weight: bold; color: #dc3545; margin-bottom: 8px;">💰 Financial Details</div>
+          <div style="font-size: 0.9em; color: #666;">Totals, VAT amounts, payment status</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; text-align: left;">
+          <div style="font-weight: bold; color: #6f42c1; margin-bottom: 8px;">🏦 Banking Info</div>
+          <div style="font-size: 0.9em; color: #666;">IBAN numbers, account holders</div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; font-size: 0.9em; color: #6c757d;">
+        📁 <strong>Supported formats:</strong> PDF, JPG, PNG, GIF, BMP
       </div>
     </div>
-
   </div>
+</div>
+</div>
+
+ 
 </ion-content>
