@@ -1,7 +1,7 @@
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ToastController } from '@ionic/angular';
 
-// Interfaces
 interface NavigationItem {
   id: string;
   label: string;
@@ -20,27 +20,45 @@ interface ToastMessage {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info';
-  duration?: number;
 }
 
-interface WorkflowStep {
-  icon: string;
-  label: string;
+interface InvoiceData {
+  supplier: string;
+  items: string;
+  quantity: string;
+  amount: string;
+  date: string;
 }
+
+interface PurchaseData {
+  item: string;
+  description: string;
+  supplier: string;
+  date: string;
+  count: number;
+  amount: string;
+  logo: string;
+  logoColor: string;
+}
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.page.html',
   styleUrls: ['./dashboard.page.scss'],
 })
-export class DashboardPage implements OnInit,OnDestroy  {
-
-  // Properties
+export class DashboardPage implements OnInit {
+  // State management
   totalAmount: number = 150;
   isLoading: boolean = false;
   loadingMessage: string = 'Laden...';
   showInfoCard: boolean = true;
   uploadCardHovered: boolean = false;
-  teamImageUrl: string | null = null;
+  hasInvoices: boolean = true; // Toggle between states
+  toastMessages: ToastMessage[] = [];
+  toastCounter: number = 0;
+  showFacturenTable: boolean = false;
+  showAankopenTable: boolean = false; // New state for purchases modal
+  showProjectenTable: boolean = false; // New state for projects modal
 
   // Navigation items
   navigationItems: NavigationItem[] = [
@@ -58,7 +76,7 @@ export class DashboardPage implements OnInit,OnDestroy  {
 
   // Company logos
   companyLogos: string[] = [
-    'EXACT', 'AFAS', 'CASH', 'KING',
+    'EXACT', 'AFAS', 'B-CASH', 'KING',
     'snelstart', 'Asperion', 'KING', 'e-Boekhouden',
     'informer', 'Minox', 'yuki', '+'
   ];
@@ -70,152 +88,159 @@ export class DashboardPage implements OnInit,OnDestroy  {
     'Alle aankopen en totaalbedragen zijn direct zichtbaar'
   ];
 
-  // Workflow steps
-  workflowSteps: WorkflowStep[] = [
-    { icon: '📧', label: 'Email' },
-    { icon: '📋', label: 'Process' },
-    { icon: '✅', label: 'Complete' }
+  // Invoice data for populated state
+  invoiceData: InvoiceData = {
+    supplier: 'Bouwmaat Haarlem',
+    items: 'Houten balken 138*38mm',
+    quantity: '2 stuks',
+    amount: '€150,-',
+    date: 'Net ontvangen, vandaag 12:05'
+  };
+
+  // Facturen table data
+  facturenTableData = [
+    {
+      supplier: 'Bouwmaat Haarlem',
+      logo: 'BM',
+      logoColor: '#3b82f6',
+      status: 'terug',
+      invoices: [
+        { date: '21 oktober ontvangen, 22:05', count: 1, amount: '€150,-' },
+        { date: '21 september ontvangen, 22:05', count: 1, amount: '€12,-' },
+        { date: '11 januari ontvangen, 22:05', count: 1, amount: '€550,-' },
+        { date: '01 januari ontvangen, 22:05', count: 1, amount: '€660,-' }
+      ],
+      totalCount: 4,
+      totalAmount: '€1.302,-'
+    },
+    {
+      supplier: 'T-Mobile',
+      logo: 'T',
+      logoColor: '#e91e63',
+      status: 'meest betaald',
+      invoices: [
+        { date: '21 oktober ontvangen, 22:05', count: 1, amount: '€50,-' }
+      ],
+      totalCount: 2,
+      totalAmount: '€80,-'
+    }
   ];
 
-  // Toast messages
-  toastMessages: ToastMessage[] = [];
-
-  private toastCounter: number = 0;
-  private toastTimeouts: { [key: string]: any } = {};
-
-  constructor(private router: Router) {
-    // Constructor logic here
-  }
-
-  ngOnInit(): void {
-    this.initializeComponent();
-    this.loadDashboardData();
-  }
-
-  ngOnDestroy(): void {
-    // Cleanup subscriptions, timers, etc.
-    this.clearAllToasts();
-  }
-
-  // Initialization methods
-  private initializeComponent(): void {
-    console.log('Dashboard component initialized');
-    // Additional initialization logic
-  }
-
-  private async loadDashboardData(): Promise<void> {
-    try {
-      this.setLoading(true, 'Dashboard gegevens laden...');
-      
-      // Simulate API calls
-      await this.delay(1000);
-      
-      // Load data here
-      await this.loadInboxTotal();
-      await this.loadUserSettings();
-      
-      this.setLoading(false);
-      this.showToast('Dashboard succesvol geladen!', 'success');
-    } catch (error) {
-      this.setLoading(false);
-      this.showToast('Fout bij het laden van dashboard gegevens', 'error');
-      console.error('Error loading dashboard data:', error);
+  // New: Aankopen table data
+  aankopenTableData = [
+    {
+      item: 'Houten balken 138*38mm',
+      description: 'artikelnr. 123456, gekocht bij bouwmaat haarlem',
+      purchases: [
+        { date: '21 oktober ontvangen, 22:05', count: 1, amount: '€80,-', supplier: 'Bouwmaat Haarlem' },
+        { date: '21 september ontvangen, 22:05', count: 2, amount: '€150,-', supplier: 'Bouwmaat Haarlem' },
+        { date: '11 januari ontvangen, 22:05', count: 1, amount: '€2000,-', supplier: 'Bouwmaat Haarlem' }
+      ],
+      totalCount: 4,
+      totalAmount: '€2230,-',
+      logo: 'BM',
+      logoColor: '#3b82f6'
     }
+  ];
+
+  // New: Projecten table data
+  projectenTableData = [
+    {
+      project: 'Houten balken 138*38mm',
+      description: 'artikelnr. 123456, gekocht bij bouwmaat haarlem',
+      items: [
+        { date: '21 oktober ontvangen, 22:05', count: 1, amount: '€80,-', supplier: 'Bouwmaat Haarlem' },
+        { date: '21 september ontvangen, 22:05', count: 2, amount: '€150,-', supplier: 'Bouwmaat Haarlem' },
+        { date: '11 januari ontvangen, 22:05', count: 1, amount: '€2000,-', supplier: 'Bouwmaat Haarlem' }
+      ],
+      totalCount: 4,
+      totalAmount: '€2230,-',
+      logo: 'BM',
+      logoColor: '#3b82f6'
+    }
+  ];
+
+  constructor(
+    private router: Router,
+    private toastController: ToastController
+  ) {}
+
+  ngOnInit() {
+    // Any initialization logic can go here
   }
 
-  private async loadInboxTotal(): Promise<void> {
-    // Simulate API call to get inbox total
-    await this.delay(500);
-    this.totalAmount = 150; // This would come from your service
-  }
-
-  private async loadUserSettings(): Promise<void> {
-    // Simulate API call to get user settings
-    await this.delay(300);
-    // Load user preferences, settings, etc.
-  }
-
-  // Navigation methods
+  // Navigation handler
   onNavigationClick(item: NavigationItem): void {
     this.navigationItems.forEach(nav => nav.active = false);
     item.active = true;
-    
+
     console.log(`Navigating to: ${item.label}`, item);
-    
-    // Add your routing logic here
+
     if (item.route) {
       this.router.navigate([item.route]).catch(error => {
         console.error('Navigation error:', error);
         this.showToast('Navigatie fout opgetreden', 'error');
       });
     }
-    
+
     this.showToast(`Navigeerd naar ${item.label}`, 'info');
   }
 
-  // Status methods
+  // Status change handler
   onStatusChange(selectedStatus: StatusOption): void {
-    this.statusOptions.forEach(status => status.active = false);
-    selectedStatus.active = true;
+    this.statusOptions = this.statusOptions.map(status => ({
+      ...status,
+      active: status.id === selectedStatus.id
+    }));
     
-    console.log(`Status changed to: ${selectedStatus.label}`, selectedStatus);
+    // Update amount based on status
+    if (selectedStatus.id === 'today') {
+      this.totalAmount = this.hasInvoices ? 150 : 0;
+    } else {
+      this.totalAmount = this.hasInvoices ? 85 : 0;
+    }
     
-    // Reload data based on status
-    this.loadStatusData(selectedStatus.id);
     this.showToast(`Status gewijzigd naar ${selectedStatus.label}`, 'info');
   }
 
-  private async loadStatusData(statusId: string): Promise<void> {
-    this.setLoading(true, 'Gegevens laden...');
-    
-    try {
-      // Simulate API call based on status
-      await this.delay(800);
-      
-      // Update data based on status
-      if (statusId === 'today') {
-        this.totalAmount = 150;
-      } else {
-        this.totalAmount = 85;
-      }
-      
-      this.setLoading(false);
-    } catch (error) {
-      this.setLoading(false);
-      this.showToast('Fout bij het laden van gegevens', 'error');
-    }
-  }
-
-  // Upload methods
-  onUploadClick(): void {
-    console.log('Upload button clicked from sidebar');
-    this.onUploadFactuur();
-  }
-
+  // Upload handler - toggles between states
   onUploadFactuur(): void {
-    console.log('Upload factuur clicked');
+    this.hasInvoices = !this.hasInvoices;
     
-    // Add your file upload logic here
-    this.simulateFileUpload();
-  }
-
-  private async simulateFileUpload(): Promise<void> {
-    this.setLoading(true, 'Factuur uploaden...');
-    
-    try {
-      await this.delay(2000);
-      
-      // Simulate successful upload
-      this.totalAmount += 50; // Add uploaded amount
-      this.setLoading(false);
+    if (!this.hasInvoices) {
+      // Going from empty to populated
+      this.totalAmount = 150;
+      this.showInfoCard = true;
       this.showToast('Factuur succesvol geüpload!', 'success');
-    } catch (error) {
-      this.setLoading(false);
-      this.showToast('Fout bij het uploaden van factuur', 'error');
+    } else {
+      // Going from populated to empty
+      this.totalAmount = 0;
+      this.showInfoCard = false;
+      this.showToast('Dashboard gereset', 'info');
     }
   }
 
-  // Card interaction methods
+  // Toast methods
+  showToast(message: string, type: 'success' | 'error' | 'info', duration: number = 3000): void {
+    const toast: ToastMessage = {
+      id: `toast-${this.toastCounter + 1}`,
+      message,
+      type
+    };
+    
+    this.toastCounter++;
+    this.toastMessages.push(toast);
+    
+    setTimeout(() => {
+      this.toastMessages = this.toastMessages.filter(t => t.id !== toast.id);
+    }, duration);
+  }
+
+  removeToast(toastId: string): void {
+    this.toastMessages = this.toastMessages.filter(toast => toast.id !== toastId);
+  }
+
+  // Other handlers
   onUploadCardHover(hovered: boolean): void {
     this.uploadCardHovered = hovered;
   }
@@ -227,105 +252,57 @@ export class DashboardPage implements OnInit,OnDestroy  {
 
   onReadMore(event: Event): void {
     event.preventDefault();
-    console.log('Read more clicked');
-    
-    // Add your read more logic here
     this.showToast('Meer informatie wordt geladen...', 'info');
-    
-    // You could open a modal, navigate to a detailed page, or expand content
-    // Example: this.router.navigate(['/info-details']);
   }
 
-  // Filter methods
   onFilterClick(): void {
-    console.log('Filter button clicked');
     this.showToast('Filter opties worden geladen...', 'info');
-    
-    // Add your filter logic here
-    // You could open a filter modal or dropdown
   }
 
   onWorkflowFilter(): void {
-    console.log('Workflow filter clicked');
     this.showToast('Workflow filter wordt toegepast...', 'info');
-    
-    // Add your workflow filter logic here
   }
 
-  // Loading methods
-  private setLoading(loading: boolean, message: string = 'Laden...'): void {
-    this.isLoading = loading;
-    this.loadingMessage = message;
+  onImageError(event: any): void {
+    event.target.style.display = 'none';
+    if (event.target.nextElementSibling) {
+      event.target.nextElementSibling.style.display = 'flex';
+    }
   }
 
-  // Toast methods
-  private showToast(message: string, type: 'success' | 'error' | 'info', duration: number = 3000): void {
-    const toast: ToastMessage = {
-      id: `toast-${++this.toastCounter}`,
+  onFacturenMenuClick(): void {
+    this.showFacturenTable = !this.showFacturenTable;
+    const message = this.showFacturenTable ? 'Facturen tabel geopend' : 'Facturen tabel gesloten';
+    this.showToast(message, 'info');
+  }
+
+  // New: Aankopen menu handler
+  onAankopenMenuClick(): void {
+    this.showAankopenTable = !this.showAankopenTable;
+    const message = this.showAankopenTable ? 'Aankopen overzicht geopend' : 'Aankopen overzicht gesloten';
+    this.showToast(message, 'info');
+  }
+
+  // New: Projecten menu handler
+  onProjectenMenuClick(): void {
+    this.showProjectenTable = !this.showProjectenTable;
+    const message = this.showProjectenTable ? 'Projecten overzicht geopend' : 'Projecten overzicht gesloten';
+    this.showToast(message, 'info');
+  }
+
+  // Alternative toast implementation using Ionic ToastController
+  async showIonicToast(message: string, color: string = 'primary'): Promise<void> {
+    const toast = await this.toastController.create({
       message,
-      type,
-      duration
-    };
-
-    this.toastMessages.push(toast);
-
-    // Auto-remove toast after duration
-    const timeout = setTimeout(() => {
-      this.removeToast(toast.id);
-    }, duration);
-
-    this.toastTimeouts[toast.id] = timeout;
-  }
-
-  private removeToast(toastId: string): void {
-    const index = this.toastMessages.findIndex(toast => toast.id === toastId);
-    if (index > -1) {
-      this.toastMessages.splice(index, 1);
-    }
-    
-    // Clear timeout if it exists
-    if (this.toastTimeouts[toastId]) {
-      clearTimeout(this.toastTimeouts[toastId]);
-      delete this.toastTimeouts[toastId];
-    }
-  }
-
-  private clearAllToasts(): void {
-    // Clear all timeouts
-    Object.values(this.toastTimeouts).forEach(timeout => {
-      clearTimeout(timeout);
+      duration: 3000,
+      color,
+      buttons: [
+        {
+          text: 'Dismiss',
+          role: 'cancel'
+        }
+      ]
     });
-    
-    this.toastTimeouts = {};
-    this.toastMessages = [];
-  }
-
-  // Utility methods
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // Additional utility methods you might need
-  private formatCurrency(amount: number): string {
-    return `€${amount},-`;
-  }
-
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  // Method to refresh dashboard data
-  refreshDashboard(): void {
-    this.loadDashboardData();
-  }
-
-  // Method to reset filters and status
-  resetFilters(): void {
-    this.statusOptions.forEach(status => {
-      status.active = status.id === 'today';
-    });
-    this.loadStatusData('today');
-    this.showToast('Filters gereset', 'info');
+    await toast.present();
   }
 }

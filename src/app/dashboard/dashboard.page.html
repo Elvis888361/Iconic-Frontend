@@ -1,130 +1,472 @@
-<div class="dashboard-container">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="logo">
-      <div class="logo-icon"></div>
-      <span class="logo-text">je factuurbox</span>
-      <span class="year">2024</span>
-    </div>
-    
-    <nav>
-      <a 
-        *ngFor="let item of navigationItems" 
-        [class.active]="item.active"
-        (click)="onNavigationClick(item)"
-        class="nav-item"
-      >
-        <span class="nav-icon">{{ item.icon }}</span>
-        {{ item.label }}
-      </a>
-    </nav>
-    
-    <div class="upload-btn" (click)="onUploadClick()">
-      <div>📁</div>
-      <div>Upload</div>
-    </div>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main-content">
-    <header class="header">
-      <h1 class="inbox-total">Inbox Total</h1>
-      <span class="total-amount">€{{ totalAmount }},-</span>
-      <div class="btw-indicator">
-        BTW aan <span class="checkmark">✓</span>
-      </div>
-    </header>
-
-    <div class="status-toggle">
-      <button 
-        *ngFor="let status of statusOptions"
-        [class.active]="status.active"
-        (click)="onStatusChange(status)"
-        class="status-btn"
-      >
-        {{ status.label }}
-      </button>
-      <button class="filter-btn" (click)="onFilterClick()">🔽</button>
-    </div>
-
-    <div class="content-grid">
-      <!-- Upload Card -->
-      <div class="card upload-card" [class.hover]="uploadCardHovered" 
-           (mouseenter)="onUploadCardHover(true)" 
-           (mouseleave)="onUploadCardHover(false)">
-        <h2 class="upload-title">Al je facturen in 1 slimme box</h2>
-        <p class="upload-subtitle">Gratis inlezen van al je facturen en kassabonnen</p>
-        
-        <div class="company-logos">
-          <div 
-            *ngFor="let logo of companyLogos; let i = index" 
-            class="company-logo"
-            [style.animation-delay]="(i * 50) + 'ms'"
-          >
-            {{ logo }}
-          </div>
+<ion-content [fullscreen]="true" class="dashboard-content">
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-container">
+          <div class="logo-icon">📦</div>
+          <span class="logo-text">je factuurbox</span>
+          <span class="year">2024</span>
         </div>
-        
-        <button class="upload-button" (click)="onUploadFactuur()">
-          Upload factuur
+      </div>
+
+      <nav class="navigation">
+        <button 
+          *ngFor="let item of navigationItems" 
+          (click)="onNavigationClick(item)"
+          [class.active]="item.active"
+          class="nav-button">
+          <span class="nav-icon">{{ item.icon }}</span>
+          {{ item.label }}
         </button>
-        
-        <p class="feature-text">
-          alle facturen zijn UBL proof en kun je doorsturen naar elk boekhoudpakket
-        </p>
-      </div>
+      </nav>
 
-      <!-- Info Card -->
-      <div class="card info-card" *ngIf="showInfoCard">
-        <button class="close-btn" (click)="onCloseInfoCard()">×</button>
-        <h3>je factuurbox is de eerste Gratis conversie tool voor al je facturen</h3>
-        <p class="info-text">
-          Ondernemers kunnen met de factuurbox
-          <span class="highlight">honderden euros conversiekosten besparen</span>
-          op hun huidige boekhoudkosten...
-          <a href="#" class="read-more" (click)="onReadMore($event)">lees meer</a>
-        </p>
-        <div class="team-image">
-          <img *ngIf="teamImageUrl; else placeholder" [src]="teamImageUrl" alt="Team foto">
-          <ng-template #placeholder>
-            <span>Team foto placeholder</span>
-          </ng-template>
+      <button 
+        (click)="onUploadFactuur()"
+        class="upload-button">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Upload</div>
+      </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <div class="header">
+        <h1 class="header-title">Inbox Total</h1>
+        <span class="total-amount">€{{ totalAmount }},-</span>
+        <div class="btw-badge">
+          BTW aan <span class="check-icon">✓</span>
         </div>
       </div>
 
-      <!-- Workflow Card -->
-      <div class="card workflow-card">
-        <button class="filter-btn" (click)="onWorkflowFilter()">🔽</button>
-        <h3>Van mailbox naar Factuurbox</h3>
-        
-        <ul class="workflow-features">
-          <li *ngFor="let feature of workflowFeatures">{{ feature }}</li>
-        </ul>
-        
-        <div class="workflow-diagram">
-          <div class="workflow-step" *ngFor="let step of workflowSteps">
-            <span class="step-icon">{{ step.icon }}</span>
-            <span class="step-label">{{ step.label }}</span>
+      <!-- Status Toggle -->
+      <div class="status-toggle">
+        <button
+          *ngFor="let status of statusOptions"
+          (click)="onStatusChange(status)"
+          [class.active]="status.active"
+          class="status-button">
+          {{ status.label }}
+          <span 
+            *ngIf="status.active && hasInvoices" 
+            class="status-count">
+            1
+          </span>
+        </button>
+        <button 
+          (click)="onFilterClick()"
+          class="filter-button">
+          🔽
+        </button>
+      </div>
+
+      <!-- Content Grid -->
+      <div class="content-grid">
+        <!-- Upload Card - Always visible -->
+        <div 
+          class="upload-card"
+          [class.hovered]="uploadCardHovered"
+          (mouseenter)="onUploadCardHover(true)"
+          (mouseleave)="onUploadCardHover(false)">
+          <h2 class="upload-card-title">
+            Al je facturen in 1 slimme box
+          </h2>
+          <p class="upload-card-description">
+            Gratis inlezen van al je facturen en kassabonnen
+          </p>
+          
+          <div class="company-logos">
+            <div 
+              *ngFor="let logo of companyLogos; let i = index"
+              class="logo-item"
+              [class.animate-pulse]="uploadCardHovered"
+              [style.animation-delay.ms]="i * 50">
+              {{ logo }}
+            </div>
           </div>
+          
+          <button 
+            (click)="onUploadFactuur()"
+            class="upload-factuur-button">
+            Upload factuur
+          </button>
+          
+          <p class="upload-card-footer">
+            alle facturen zijn UBL proof en kun je doorsturen naar elk boekhoudpakket
+          </p>
+        </div>
+
+        <!-- Conditional Content based on hasInvoices -->
+        <ng-container *ngIf="hasInvoices; else emptyState">
+          <!-- Info Card - Only when has invoices -->
+          <div *ngIf="showInfoCard" class="info-card">
+            <button 
+              (click)="onCloseInfoCard()"
+              class="close-button">
+              ×
+            </button>
+            <h3 class="info-card-title">
+              je factuurbox is de eerste Gratis conversie tool voor al je facturen
+            </h3>
+            <p class="info-card-description">
+              Ondernemers kunnen met de factuurbox 
+              <span class="highlight">honderden euros conversiekosten besparen</span> 
+              op hun huidige boekhoudkosten... 
+              <a href="#" (click)="onReadMore($event)" class="read-more-link">
+                lees meer
+              </a>
+            </p>
+            <div class="info-card-image">
+              <img 
+                src="/api/placeholder/300/120" 
+                alt="Team foto" 
+                (error)="onImageError($event)"
+                class="team-image">
+              <span class="image-placeholder" [style.display]="'none'">
+                Team foto placeholder
+              </span>
+            </div>
+          </div>
+
+          <!-- Workflow Card - Only when has invoices -->
+          <div class="workflow-card">
+            <button 
+              (click)="onWorkflowFilter()"
+              class="workflow-filter-button">
+              🔽
+            </button>
+            <h3 class="workflow-card-title">Van mailbox naar Factuurbox</h3>
+            
+            <ul class="workflow-features">
+              <li *ngFor="let feature of workflowFeatures" class="workflow-feature">
+                <span class="feature-check">✓</span>
+                {{ feature }}
+              </li>
+            </ul>
+            
+            <div class="workflow-diagram">
+              <div class="workflow-step">
+                <span class="step-icon">📧</span>
+                <span class="step-label">Email</span>
+              </div>
+              <div class="workflow-step">
+                <span class="step-icon">📋</span>
+                <span class="step-label">Process</span>
+              </div>
+              <div class="workflow-step">
+                <span class="step-icon">✅</span>
+                <span class="step-label">Complete</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Invoice Card - Only when has invoices -->
+          <div class="invoice-card">
+            <div class="invoice-date">{{ invoiceData.date }}</div>
+            <div class="invoice-header">
+              <div class="invoice-info">
+                <h3 class="supplier-name">{{ invoiceData.supplier }}</h3>
+                <div class="invoice-details">
+                  <div class="item-icon">📦</div>
+                  <span class="item-name">{{ invoiceData.items }}</span>
+                  <span class="item-quantity">{{ invoiceData.quantity }}</span>
+                </div>
+              </div>
+              <div class="invoice-amount-section">
+                <div class="supplier-logo">BM</div>
+                <div class="invoice-amount">{{ invoiceData.amount }}</div>
+              </div>
+            </div>
+            
+            <div class="invoice-total">
+              <span class="total-label">Totaal factuur</span>
+              <span class="total-value">{{ invoiceData.amount }}</span>
+            </div>
+            
+            <div class="invoice-actions">
+              <button class="action-button primary">Bekijk</button>
+              <button class="action-button icon">📤</button>
+              <button class="action-button primary ml-auto">Naar boekhouding</button>
+              <button class="action-button secondary">Naar project</button>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Empty State Cards -->
+        <ng-template #emptyState>
+          <!-- Facturen Table Modal -->
+          <div *ngIf="showFacturenTable" class="facturen-table-overlay" (click)="onFacturenMenuClick()">
+            <div class="facturen-table-container" (click)="$event.stopPropagation()">
+              <div class="facturen-table-header">
+                <div class="facturen-header-left">
+                  <h2>Inbox Total</h2>
+                  <span class="facturen-total">€150,-</span>
+                  <div class="btw-status">BTW aan <span class="check">✓</span></div>
+                </div>
+                <button class="close-table-button" (click)="onFacturenMenuClick()">×</button>
+              </div>
+
+              <div class="facturen-filter-bar">
+                <button class="filter-btn active">terug</button>
+                <button class="filter-btn">meest betaald</button>
+                <button class="filter-btn">meest gekocht</button>
+                <div class="filter-actions">
+                  <button class="search-btn">🔍</button>
+                  <button class="filter-menu-btn">🔽</button>
+                </div>
+              </div>
+
+              <div class="facturen-table">
+                <div *ngFor="let supplier of facturenTableData" class="supplier-section">
+                  <div class="supplier-header">
+                    <div class="supplier-info">
+                      <div class="supplier-logo" [style.background-color]="supplier.logoColor">
+                        {{ supplier.logo }}
+                      </div>
+                      <div class="supplier-details">
+                        <h3>{{ supplier.supplier }}</h3>
+                        <span class="supplier-status">{{ supplier.status }}</span>
+                      </div>
+                    </div>
+                    <div class="supplier-totals">
+                      <div class="total-count">{{ supplier.totalCount }}</div>
+                      <div class="total-amount">{{ supplier.totalAmount }}</div>
+                      <button class="expand-btn">⚊</button>
+                    </div>
+                  </div>
+
+                  <div class="invoice-list">
+                    <div *ngFor="let invoice of supplier.invoices" class="invoice-row">
+                      <div class="invoice-logo" [style.background-color]="supplier.logoColor">
+                        {{ supplier.logo }}
+                      </div>
+                      <div class="invoice-details">
+                        <span class="invoice-date">{{ invoice.date }}</span>
+                        <span class="invoice-supplier">{{ supplier.supplier }}</span>
+                      </div>
+                      <div class="invoice-amount-info">
+                        <div class="invoice-count">{{ invoice.count }}</div>
+                        <div class="invoice-amount">{{ invoice.amount }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEW: Aankopen Table Modal -->
+          <div *ngIf="showAankopenTable" class="aankopen-table-overlay" (click)="onAankopenMenuClick()">
+            <div class="aankopen-table-container" (click)="$event.stopPropagation()">
+              <div class="aankopen-table-header">
+                <div class="aankopen-header-left">
+                  <h2>Overzicht meest betaalde aankopen</h2>
+                  <span class="aankopen-total">€3415,-</span>
+                  <div class="btw-status">BTW aan <span class="check">✓</span></div>
+                </div>
+                <button class="close-table-button" (click)="onAankopenMenuClick()">×</button>
+              </div>
+
+              <div class="aankopen-filter-bar">
+                <button class="filter-btn active">terug</button>
+                <button class="filter-btn">meest betaald</button>
+                <button class="filter-btn">meest gekocht</button>
+                <div class="filter-actions">
+                  <button class="search-btn">🔍</button>
+                  <button class="filter-menu-btn">🔽</button>
+                </div>
+              </div>
+
+              <div class="aankopen-table">
+                <div *ngFor="let purchase of aankopenTableData" class="purchase-section">
+                  <div class="purchase-header">
+                    <div class="purchase-info">
+                      <div class="purchase-logo" [style.background-color]="purchase.logoColor">
+                        {{ purchase.logo }}
+                      </div>
+                      <div class="purchase-details">
+                        <h3>{{ purchase.item }}</h3>
+                        <span class="purchase-description">{{ purchase.description }}</span>
+                      </div>
+                    </div>
+                    <div class="purchase-totals">
+                      <div class="total-count">{{ purchase.totalCount }}</div>
+                      <div class="total-amount">{{ purchase.totalAmount }}</div>
+                      <button class="expand-btn">⚊</button>
+                    </div>
+                  </div>
+
+                  <div class="purchase-list">
+                    <div *ngFor="let item of purchase.purchases" class="purchase-row">
+                      <div class="purchase-item-logo" [style.background-color]="purchase.logoColor">
+                        {{ purchase.logo }}
+                      </div>
+                      <div class="purchase-item-details">
+                        <span class="purchase-date">{{ item.date }}</span>
+                        <span class="purchase-supplier">{{ item.supplier }}</span>
+                      </div>
+                      <div class="purchase-amount-info">
+                        <div class="purchase-count">{{ item.count }}</div>
+                        <div class="purchase-amount">{{ item.amount }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEW: Projecten Table Modal -->
+          <div *ngIf="showProjectenTable" class="projecten-table-overlay" (click)="onProjectenMenuClick()">
+            <div class="projecten-table-container" (click)="$event.stopPropagation()">
+              <div class="projecten-table-header">
+                <div class="projecten-header-left">
+                  <h2>Outbox Total</h2>
+                  <span class="projecten-total">€3415,-</span>
+                  <div class="btw-status">BTW aan <span class="check">✓</span></div>
+                </div>
+                <button class="close-table-button" (click)="onProjectenMenuClick()">×</button>
+              </div>
+
+              <div class="projecten-filter-bar">
+                <button class="filter-btn active">terug</button>
+                <button class="filter-btn">meest betaald</button>
+                <button class="filter-btn">meest gekocht</button>
+                <div class="filter-actions">
+                  <button class="search-btn">🔍</button>
+                  <button class="filter-menu-btn">🔽</button>
+                </div>
+              </div>
+
+              <div class="projecten-table">
+                <div class="projecten-section-header">
+                  <h3>Overzicht meest betaalde aankopen</h3>
+                  <button class="collapse-btn">⚊</button>
+                </div>
+                
+                <div *ngFor="let project of projectenTableData" class="project-section">
+                  <div class="project-header">
+                    <div class="project-info">
+                      <div class="project-logo" [style.background-color]="project.logoColor">
+                        {{ project.logo }}
+                      </div>
+                      <div class="project-details">
+                        <h3>{{ project.project }}</h3>
+                        <span class="project-description">{{ project.description }}</span>
+                      </div>
+                    </div>
+                    <div class="project-totals">
+                      <div class="total-count">{{ project.totalCount }}</div>
+                      <div class="total-amount">{{ project.totalAmount }}</div>
+                      <button class="expand-btn">⚊</button>
+                    </div>
+                  </div>
+
+                  <div class="project-list">
+                    <div *ngFor="let item of project.items" class="project-row">
+                      <div class="project-item-logo" [style.background-color]="project.logoColor">
+                        {{ project.logo }}
+                      </div>
+                      <div class="project-item-details">
+                        <span class="project-date">{{ item.date }}</span>
+                        <span class="project-supplier">{{ item.supplier }}</span>
+                      </div>
+                      <div class="project-amount-info">
+                        <div class="project-count">{{ item.count }}</div>
+                        <div class="project-amount">{{ item.amount }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-card">
+            <div class="empty-card-header">
+              <h3 class="empty-card-title">belangrijke facturen</h3>
+              <button class="empty-card-menu" (click)="onFacturenMenuClick()">⚊</button>
+            </div>
+            <p class="empty-card-description">je factuurbox is de eerste Gratis conversie facturen</p>
+            
+            <div class="empty-card-content">
+              <div class="empty-item-info">
+                <div class="empty-item-logo"></div>
+                <span class="empty-item-name">leverancier A</span>
+              </div>
+              <div class="empty-item-amount">
+                <div class="empty-count">0</div>
+                <div class="empty-value">€0,-</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-card">
+            <div class="empty-card-header">
+              <h3 class="empty-card-title">belangrijke aankopen</h3>
+              <!-- UPDATED: Added click handler for aankopen button -->
+              <button class="empty-card-menu" (click)="onAankopenMenuClick()">⚊</button>
+            </div>
+            <p class="empty-card-description">je factuurbox is de eerste Gratis conversie facturen</p>
+            
+            <div class="empty-card-content">
+              <div class="empty-item-info">
+                <div class="empty-item-logo"></div>
+                <span class="empty-item-name">aankoop A</span>
+              </div>
+              <div class="empty-item-amount">
+                <div class="empty-count">0</div>
+                <div class="empty-value">€0,-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Projects Card - Bottom -->
+          <div class="empty-card projects-card">
+            <div class="empty-card-header">
+              <h3 class="empty-card-title">jouw projecten</h3>
+              <!-- UPDATED: Added click handler for projecten button -->
+              <button class="empty-card-menu" (click)="onProjectenMenuClick()">⚊</button>
+            </div>
+            <p class="empty-card-description">je factuurbox is de eerste Gratis conversie facturen</p>
+            
+            <div class="empty-card-content">
+              <div class="empty-item-info">
+                <div class="empty-item-logo project-icon">📷</div>
+                <span class="empty-item-name">jouw projectnaam</span>
+              </div>
+              <div class="empty-item-amount">
+                <div class="empty-count">0</div>
+                <div class="empty-value">€0,-</div>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div *ngIf="isLoading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p class="loading-message">{{ loadingMessage }}</p>
+    </div>
+
+    <!-- Toast Messages -->
+    <div class="toast-container">
+      <div
+        *ngFor="let toast of toastMessages"
+        class="toast-message"
+        [ngClass]="'toast-' + toast.type">
+        <div class="toast-content">
+          <span class="toast-text">{{ toast.message }}</span>
+          <button 
+            (click)="removeToast(toast.id)"
+            class="toast-close">
+            ×
+          </button>
         </div>
       </div>
     </div>
   </div>
-</div>
-
-<!-- Loading Overlay -->
-<div class="loading-overlay" *ngIf="isLoading">
-  <div class="spinner"></div>
-  <p>{{ loadingMessage }}</p>
-</div>
-
-<!-- Toast Messages -->
-<div class="toast-container">
-  <div 
-    *ngFor="let toast of toastMessages" 
-    class="toast"
-    [class]="'toast-' + toast.type"
-  >
-    {{ toast.message }}
-  </div>
-</div>
+</ion-content>

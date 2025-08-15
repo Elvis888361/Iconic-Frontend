@@ -1,38 +1,35 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>Advanced PDF OCR & Invoice Analysis</ion-title>
-  </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-
+<div class="jbet">
   <div class="dashboard-container" style=" ">
         <div class="sidebar">
-    <div class="logo">
-      <div class="logo-icon"></div>
-      <span class="logo-text">je factuurbox</span>
-      <span class="year">2024</span>
+        <div class="logo">
+          <div class="logo-icon"></div>
+          <span class="logo-text">je factuurbox</span>
+          <span class="year">2024</span>
+        </div>
+        
+        <nav>
+          <a 
+            *ngFor="let item of navigationItems" 
+            [class.active]="item.active"
+            (click)="onNavigationClick(item)"
+            class="nav-item"
+          >
+            <span class="nav-icon">{{ item.icon }}</span>
+            {{ item.label }}
+          </a>
+        </nav>
+        
+        <div class="upload-btn" (click)="onUploadClick()">
+          <div>📁</div>
+          <div>Upload</div>
+        </div>
     </div>
-    
-    <nav>
-      <a 
-        *ngFor="let item of navigationItems" 
-        [class.active]="item.active"
-        (click)="onNavigationClick(item)"
-        class="nav-item"
-      >
-        <span class="nav-icon">{{ item.icon }}</span>
-        {{ item.label }}
-      </a>
-    </nav>
-    
-    <div class="upload-btn" (click)="onUploadClick()">
-      <div>📁</div>
-      <div>Upload</div>
-    </div>
-  </div>
   <div>
-  <div class="main-content" style="padding-left:100px width:100%; margin: 0 auto; display: flex; flex-direction: column;">
+  <div class="main-content" style="padding-left:200px width:100%; margin: 0 auto; display: flex;  flex-direction: column;">
     
     <!-- File Upload Section -->
     <div class="upload-section" style="margin-bottom: 20px; text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px;">
@@ -606,6 +603,7 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 </div>
 
