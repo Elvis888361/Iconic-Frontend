@@ -280,7 +280,7 @@ body {
 // ===== MAIN CONTENT AREA =====
 .main-content {
   flex: 1;
-
+  margin-left: $sidebar-width; // Add this line
   min-height: 100vh;
   display: flex;
   flex-direction: column;

@@ -29,23 +29,24 @@
         </div>
     </div>
   <div>
-  <div class="main-content" style="padding-left:200px width:100%; margin: 0 auto; display: flex;  flex-direction: column;">
+  <div class="main-content" >
     
     <!-- File Upload Section -->
-    <div class="upload-section" style="margin-bottom: 20px; text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-      <h2>📄 Upload Invoice PDF or Image</h2>
-      <div style="margin: 15px 0;">
-        <input #fileInputRef type="file" (change)="onFileSelected($event)" 
-               accept="application/pdf,image/*" 
-               style="margin-right: 10px; padding: 10px;" />
-        <ion-button color="danger" (click)="clearSelectedFile()" *ngIf="selectedFile">
-          🗑️ Clear
-        </ion-button>
-        <ion-button color="primary" (click)="startOcrProcessing()" 
-                   [disabled]="!selectedFile || isProcessing">
-          🚀 Start OCR Analysis
-        </ion-button>
-      </div>
+    <div class="upload-section" style="margin-bottom: 20px; text-align: center; background: #f8f9fa; padding: 20px; border-radius: 10px; width: 100%; box-sizing: border-box;">
+  <h2>📄 Upload Invoice PDF or Image</h2>
+  <div style="margin: 15px 0; display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap;">
+    <input #fileInputRef type="file" (change)="onFileSelected($event)" 
+           accept="application/pdf,image/*" 
+           style="padding: 10px; flex: 0 0 auto;" />
+    <ion-button color="danger" (click)="clearSelectedFile()" *ngIf="selectedFile">
+      🗑️ Clear
+    </ion-button>
+    <ion-button color="primary" (click)="startOcrProcessing()" 
+               [disabled]="!selectedFile || isProcessing">
+      🚀 Start OCR Analysis
+    </ion-button>
+  </div>
+
       
       <!-- Controls -->
       <!-- Add this to your controls section in the HTML file -->
