@@ -263,7 +263,7 @@ public canvasHeight = 700
   private socketId: string | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
-  public showInvoiceDetails = false; 
+  public showInvoiceDetails = true; 
 
   public invoiceData: any = null;
 
